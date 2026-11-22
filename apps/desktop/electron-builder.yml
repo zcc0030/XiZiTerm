@@ -1,6 +1,7 @@
 appId: io.github.zcc0030.xiziterm
 productName: XiZiTerm
 copyright: Copyright © 2026 zcc0030
+electronVersion: "34.5.8"
 npmRebuild: false
 
 directories:
