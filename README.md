@@ -34,9 +34,23 @@
 
 | 平台 | 安装包类型 |
 | :--- | :--- |
-| **Windows (x64)** | `XiZiTerm-Setup-x.y.z.exe`（安装版） / `XiZiTerm-Portable-x.y.z.exe`（单文件便携版） |
+| **Windows (x64)** | `XiZiTerm-Setup-x.y.z.exe`（安装版） / `XiZiTerm-Portable-x.y.z.exe`（单文件便携版） / **Scoop 命令行安装** |
 | **macOS (Apple Silicon / Intel)** | `XiZiTerm-x.y.z-arm64.dmg` / `XiZiTerm-x.y.z-x64.dmg` |
-| **Linux (x64)** | `XiZiTerm-x.y.z-x64.AppImage` / `XiZiTerm-x.y.z-x64.deb` |
+| **Linux (x64)** | `XiZiTerm-x.y.z-x86_64.AppImage` / `XiZiTerm-x.y.z-amd64.deb` |
+
+### Windows 使用 Scoop 一键安装 / 升级 / 卸载
+
+```powershell
+# 1. 添加软件源（仅首次需要）
+scoop bucket add zcc0030 https://github.com/zcc0030/scoop-bucket
+
+# 2. 安装 XiZiTerm（自动创建开始菜单快捷方式与命令行入口）
+scoop install xiziterm
+
+# 3. 后续升级与卸载
+scoop update; scoop update xiziterm
+scoop uninstall xiziterm
+```
 
 > **macOS 提示**：开源构建未附加付费 Apple 开发者签名，首次打开如提示「无法验证开发者」，可在终端执行 `sudo xattr -rd com.apple.quarantine /Applications/XiZiTerm.app` 后正常启动。
 
