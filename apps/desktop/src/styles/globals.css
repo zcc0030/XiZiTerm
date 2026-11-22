@@ -1,0 +1,79 @@
+@import './themes.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border-color);
+  }
+}
+
+:root {
+  --background: 222 47% 6%;
+  --foreground: 210 38% 93%;
+  --card: 223 39% 9%;
+  --card-foreground: 210 38% 93%;
+  --primary: 189 92% 44%;
+  --primary-foreground: 222 47% 6%;
+  --secondary: 218 32% 14%;
+  --secondary-foreground: 210 36% 90%;
+  --muted: 218 28% 12%;
+  --muted-foreground: 215 18% 58%;
+  --accent: 218 30% 18%;
+  --accent-foreground: 210 38% 96%;
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 210 38% 98%;
+  --border: 218 26% 18%;
+  --input: 218 26% 18%;
+  --ring: 189 92% 44%;
+  --radius: 0.5rem;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+}
+
+/* Custom XiZiTerm theme-aware scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.xterm {
+  padding: 6px 8px;
+  height: 100%;
+}
+
+.xterm-viewport::-webkit-scrollbar {
+  width: 7px;
+}
+
+.xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}

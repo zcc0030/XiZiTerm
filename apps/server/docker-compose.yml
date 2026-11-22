@@ -1,0 +1,22 @@
+services:
+  xiziterm-sync:
+    build:
+      context: ../..
+      dockerfile: apps/server/Dockerfile
+    container_name: xiziterm-sync-server
+    restart: unless-stopped
+    ports:
+      - "${XIZITERM_PORT:-8787}:8787"
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "8787"
+      DB_PATH: "/data/xiziterm.db"
+      # 首次注册完个人账号后，建议改为 false 防止陌生人注册
+      ALLOW_REGISTRATION: "${ALLOW_REGISTRATION:-true}"
+      # 可选：设置注册邀请码，留空则不校验
+      INVITE_CODE: "${INVITE_CODE:-}"
+      TOKEN_TTL_DAYS: "${TOKEN_TTL_DAYS:-365}"
+      CORS_ORIGIN: "${CORS_ORIGIN:-*}"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+    volumes:
+      - ./data:/data

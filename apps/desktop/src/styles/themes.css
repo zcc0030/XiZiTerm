@@ -1,0 +1,366 @@
+/* ==========================================================================
+   XiZiTerm 7-Theme Semantic CSS Variable System
+   ========================================================================== */
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg-base: #0F141C;
+  --bg-sidebar: #161B26;
+  --bg-elevated: #1E2532;
+  --bg-input: #121722;
+  --bg-hover: rgba(148, 163, 184, 0.10);
+  --border-color: #2A3441;
+  --text-primary: #E2E8F0;
+  --text-muted: #94A3B8;
+  --accent-primary: #38BDF8;
+  --accent-secondary: #38BDF8;
+  --accent-contrast: #090D16;
+  --accent-soft: rgba(56, 189, 248, 0.15);
+  --status-online: #4ADE80;
+  --status-online-soft: rgba(74, 222, 128, 0.14);
+  --status-warn: #FBBF24;
+  --status-warn-soft: rgba(251, 191, 36, 0.14);
+  --status-error: #F87171;
+  --status-error-soft: rgba(248, 113, 113, 0.14);
+  --scrollbar-thumb: rgba(148, 163, 184, 0.25);
+  --scrollbar-thumb-hover: rgba(56, 189, 248, 0.50);
+  --panel-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
+  --active-pane-glow: none;
+  --tab-active-bar: transparent;
+}
+
+/* 1. 正常日间样式 (light) */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg-base: #FFFFFF;
+  --bg-sidebar: #F3F5F8;
+  --bg-elevated: #E9EDF2;
+  --bg-input: #FFFFFF;
+  --bg-hover: rgba(30, 41, 59, 0.06);
+  --border-color: #D8DEE9;
+  --text-primary: #1E293B;
+  --text-muted: #64748B;
+  --accent-primary: #2563EB;
+  --accent-secondary: #059669;
+  --accent-contrast: #FFFFFF;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --status-online: #059669;
+  --status-online-soft: rgba(5, 150, 105, 0.12);
+  --status-warn: #D97706;
+  --status-warn-soft: rgba(217, 119, 6, 0.12);
+  --status-error: #DC2626;
+  --status-error-soft: rgba(220, 38, 38, 0.10);
+  --scrollbar-thumb: rgba(100, 116, 139, 0.28);
+  --scrollbar-thumb-hover: rgba(37, 99, 235, 0.48);
+  --panel-shadow: 0 16px 36px rgba(15, 23, 42, 0.14);
+  --active-pane-glow: none;
+  --tab-active-bar: #2563EB;
+}
+
+/* 3. 多巴胺色系 (dopamine) */
+:root[data-theme='dopamine'] {
+  color-scheme: dark;
+  --bg-base: #18122B;
+  --bg-sidebar: #22193E;
+  --bg-elevated: #2D2252;
+  --bg-input: #1D1536;
+  --bg-hover: rgba(255, 46, 147, 0.12);
+  --border-color: #44337A;
+  --text-primary: #FFFDF7;
+  --text-muted: #C4B5FD;
+  --accent-primary: #FF2E93;
+  --accent-secondary: #FF7B00;
+  --accent-contrast: #FFFDF7;
+  --accent-soft: rgba(255, 46, 147, 0.20);
+  --status-online: #00F5D4;
+  --status-online-soft: rgba(0, 245, 212, 0.16);
+  --status-warn: #FFE600;
+  --status-warn-soft: rgba(255, 230, 0, 0.15);
+  --status-error: #FF7B00;
+  --status-error-soft: rgba(255, 123, 0, 0.18);
+  --scrollbar-thumb: rgba(196, 181, 253, 0.28);
+  --scrollbar-thumb-hover: rgba(255, 46, 147, 0.65);
+  --panel-shadow: 0 20px 45px rgba(10, 6, 22, 0.65);
+  --active-pane-glow: 0 0 0 1px rgba(255, 46, 147, 0.45);
+  --tab-active-bar: linear-gradient(90deg, #FF2E93, #FFE600, #00F5D4);
+}
+
+/* 4. 莫兰迪色系 (morandi) */
+:root[data-theme='morandi'] {
+  color-scheme: light;
+  --bg-base: #F2EFE9;
+  --bg-sidebar: #E6E1D8;
+  --bg-elevated: #DCD6CB;
+  --bg-input: #F7F5F0;
+  --bg-hover: rgba(63, 59, 55, 0.07);
+  --border-color: #CFC8BC;
+  --text-primary: #3F3B37;
+  --text-muted: #7D766D;
+  --accent-primary: #7B90A1;
+  --accent-secondary: #859A84;
+  --accent-contrast: #F9F7F3;
+  --accent-soft: rgba(123, 144, 161, 0.20);
+  --status-online: #859A84;
+  --status-online-soft: rgba(133, 154, 132, 0.18);
+  --status-warn: #CFA98E;
+  --status-warn-soft: rgba(207, 169, 142, 0.22);
+  --status-error: #C48F8F;
+  --status-error-soft: rgba(196, 143, 143, 0.20);
+  --scrollbar-thumb: rgba(125, 118, 109, 0.30);
+  --scrollbar-thumb-hover: rgba(123, 144, 161, 0.55);
+  --panel-shadow: 0 14px 32px rgba(63, 59, 55, 0.14);
+  --active-pane-glow: none;
+  --tab-active-bar: #7B90A1;
+}
+
+/* 5. 赛博朋克 / 霓虹极客 (cyberpunk) */
+:root[data-theme='cyberpunk'] {
+  color-scheme: dark;
+  --bg-base: #05050A;
+  --bg-sidebar: #0B001A;
+  --bg-elevated: #120524;
+  --bg-input: #080214;
+  --bg-hover: rgba(0, 240, 255, 0.10);
+  --border-color: #2A144D;
+  --text-primary: #E6F1FF;
+  --text-muted: #8B7AA8;
+  --accent-primary: #FF007F;
+  --accent-secondary: #00F0FF;
+  --accent-contrast: #FFFFFF;
+  --accent-soft: rgba(0, 240, 255, 0.16);
+  --status-online: #39FF14;
+  --status-online-soft: rgba(57, 255, 20, 0.14);
+  --status-warn: #FF6B00;
+  --status-warn-soft: rgba(255, 107, 0, 0.16);
+  --status-error: #FF003C;
+  --status-error-soft: rgba(255, 0, 60, 0.16);
+  --scrollbar-thumb: rgba(139, 122, 168, 0.32);
+  --scrollbar-thumb-hover: rgba(0, 240, 255, 0.70);
+  --panel-shadow: 0 0 24px rgba(0, 240, 255, 0.16), 0 20px 50px rgba(0, 0, 0, 0.85);
+  --active-pane-glow: 0 0 8px rgba(0, 240, 255, 0.5);
+  --tab-active-bar: linear-gradient(90deg, #00F0FF, #FF007F);
+}
+
+/* 6. 复古像素 / 怀旧终端 (retro - Gruvbox) */
+:root[data-theme='retro'] {
+  color-scheme: dark;
+  --bg-base: #1D2021;
+  --bg-sidebar: #282828;
+  --bg-elevated: #32302F;
+  --bg-input: #1D2021;
+  --bg-hover: rgba(235, 219, 178, 0.08);
+  --border-color: #504945;
+  --text-primary: #EBDBB2;
+  --text-muted: #A89984;
+  --accent-primary: #FE8019;
+  --accent-secondary: #FABD2F;
+  --accent-contrast: #1D2021;
+  --accent-soft: rgba(254, 128, 25, 0.18);
+  --status-online: #B8BB26;
+  --status-online-soft: rgba(184, 187, 38, 0.16);
+  --status-warn: #FABD2F;
+  --status-warn-soft: rgba(250, 189, 47, 0.16);
+  --status-error: #FB4934;
+  --status-error-soft: rgba(251, 73, 52, 0.16);
+  --scrollbar-thumb: rgba(168, 153, 132, 0.30);
+  --scrollbar-thumb-hover: rgba(254, 128, 25, 0.55);
+  --panel-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+  --active-pane-glow: none;
+  --tab-active-bar: #FE8019;
+}
+
+/* 7. 北欧极简 / 冰川森林 (nordic - Nord) */
+:root[data-theme='nordic'] {
+  color-scheme: dark;
+  --bg-base: #2E3440;
+  --bg-sidebar: #242933;
+  --bg-elevated: #3B4252;
+  --bg-input: #292E39;
+  --bg-hover: rgba(216, 222, 233, 0.08);
+  --border-color: #434C5E;
+  --text-primary: #ECEFF4;
+  --text-muted: #D8DEE9;
+  --accent-primary: #88C0D0;
+  --accent-secondary: #81A1C1;
+  --accent-contrast: #242933;
+  --accent-soft: rgba(136, 192, 208, 0.18);
+  --status-online: #A3BE8C;
+  --status-online-soft: rgba(163, 190, 140, 0.16);
+  --status-warn: #EBCB8B;
+  --status-warn-soft: rgba(235, 203, 139, 0.16);
+  --status-error: #BF616A;
+  --status-error-soft: rgba(191, 97, 106, 0.16);
+  --scrollbar-thumb: rgba(216, 222, 233, 0.22);
+  --scrollbar-thumb-hover: rgba(136, 192, 208, 0.50);
+  --panel-shadow: 0 4px 12px rgba(20, 24, 31, 0.25);
+  --active-pane-glow: none;
+  --tab-active-bar: #88C0D0;
+}
+
+/* Smooth 0.2s ease theme transitions across UI surfaces (excluding xterm canvas/rows) */
+body,
+aside,
+header,
+table,
+thead,
+tr,
+td,
+input,
+select,
+textarea,
+button,
+.nt-surface-transition {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* Special per-theme highlights per color.md */
+
+/* Cyberpunk: Neon glow on active pane, active tab & focused inputs */
+:root[data-theme='cyberpunk'] .nt-active-pane {
+  border-color: #00F0FF !important;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.5) !important;
+}
+
+:root[data-theme='cyberpunk'] .nt-tab-active {
+  border-color: rgba(0, 240, 255, 0.55) !important;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.40);
+}
+
+:root[data-theme='cyberpunk'] input:focus,
+:root[data-theme='cyberpunk'] textarea:focus,
+:root[data-theme='cyberpunk'] select:focus {
+  border-color: #00F0FF !important;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.45) !important;
+}
+
+/* Retro: Subtle CRT rounded frame & warm border texture around terminal panes */
+:root[data-theme='retro'] .nt-terminal-shell {
+  padding: 4px;
+  background-color: var(--bg-sidebar);
+}
+
+:root[data-theme='retro'] .nt-pane-card {
+  border-radius: 6px;
+  border: 1px solid #504945;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.28);
+}
+
+/* Nordic: Minimalist flat hierarchy, reduce decorative shadows */
+:root[data-theme='nordic'] * {
+  --tw-shadow: 0 0 #0000 !important;
+}
+
+/* ==========================================================================
+   Theme Bridge for Secondary Modals & Legacy Slate/Cyan Utility Classes
+   Ensures all 7 themes (including Light, Morandi, Dopamine, Cyberpunk, Retro,
+   and Nordic) render secondary form dialogs, tables, and code blocks natively.
+   ========================================================================== */
+
+:root:not([data-theme='dark']) .bg-\[\#080c15\],
+:root:not([data-theme='dark']) .bg-\[\#070b14\] {
+  background-color: var(--bg-input) !important;
+}
+
+:root:not([data-theme='dark']) .bg-\[\#0d1322\] {
+  background-color: var(--bg-elevated) !important;
+}
+
+:root:not([data-theme='dark']) .bg-slate-950,
+:root:not([data-theme='dark']) .bg-slate-950\/40,
+:root:not([data-theme='dark']) .bg-slate-950\/50,
+:root:not([data-theme='dark']) .bg-slate-950\/60,
+:root:not([data-theme='dark']) .bg-slate-950\/70,
+:root:not([data-theme='dark']) .bg-slate-950\/80 {
+  background-color: var(--bg-input) !important;
+}
+
+:root:not([data-theme='dark']) .bg-slate-900,
+:root:not([data-theme='dark']) .bg-slate-900\/40,
+:root:not([data-theme='dark']) .bg-slate-900\/50,
+:root:not([data-theme='dark']) .bg-slate-900\/55,
+:root:not([data-theme='dark']) .bg-slate-900\/60,
+:root:not([data-theme='dark']) .bg-slate-900\/70,
+:root:not([data-theme='dark']) .bg-slate-900\/80,
+:root:not([data-theme='dark']) .bg-slate-900\/90,
+:root:not([data-theme='dark']) .bg-slate-800,
+:root:not([data-theme='dark']) .bg-slate-800\/80 {
+  background-color: var(--bg-elevated) !important;
+}
+
+:root:not([data-theme='dark']) .border-slate-800,
+:root:not([data-theme='dark']) .border-slate-800\/70,
+:root:not([data-theme='dark']) .border-slate-800\/80,
+:root:not([data-theme='dark']) .border-slate-800\/90,
+:root:not([data-theme='dark']) .border-slate-700,
+:root:not([data-theme='dark']) .border-slate-700\/80,
+:root:not([data-theme='dark']) .border-slate-700\/90 {
+  border-color: var(--border-color) !important;
+}
+
+:root:not([data-theme='dark']) .divide-slate-800\/50 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-color) !important;
+}
+
+:root:not([data-theme='dark']) .text-slate-100,
+:root:not([data-theme='dark']) .text-slate-200 {
+  color: var(--text-primary) !important;
+}
+
+:root:not([data-theme='dark']) .text-slate-300,
+:root:not([data-theme='dark']) .text-slate-400,
+:root:not([data-theme='dark']) .text-slate-500 {
+  color: var(--text-muted) !important;
+}
+
+:root:not([data-theme='dark']) .text-cyan-200,
+:root:not([data-theme='dark']) .text-cyan-200\/90,
+:root:not([data-theme='dark']) .text-cyan-200\/95,
+:root:not([data-theme='dark']) .text-cyan-300,
+:root:not([data-theme='dark']) .text-cyan-400 {
+  color: var(--accent-primary) !important;
+}
+
+:root:not([data-theme='dark']) .bg-cyan-500\/10,
+:root:not([data-theme='dark']) .bg-cyan-500\/15,
+:root:not([data-theme='dark']) .bg-cyan-500\/20 {
+  background-color: var(--accent-soft) !important;
+}
+
+:root:not([data-theme='dark']) .border-cyan-500\/30,
+:root:not([data-theme='dark']) .border-cyan-500\/40,
+:root:not([data-theme='dark']) .border-cyan-500\/50,
+:root:not([data-theme='dark']) .border-cyan-500\/60 {
+  border-color: var(--accent-primary) !important;
+}
+
+:root:not([data-theme='dark']) .text-emerald-200,
+:root:not([data-theme='dark']) .text-emerald-300,
+:root:not([data-theme='dark']) .text-emerald-400 {
+  color: var(--status-online) !important;
+}
+
+:root:not([data-theme='dark']) .text-amber-100,
+:root:not([data-theme='dark']) .text-amber-100\/90,
+:root:not([data-theme='dark']) .text-amber-200,
+:root:not([data-theme='dark']) .text-amber-300,
+:root:not([data-theme='dark']) .text-amber-400 {
+  color: var(--status-warn) !important;
+}
+
+:root:not([data-theme='dark']) .text-rose-300,
+:root:not([data-theme='dark']) .text-rose-400 {
+  color: var(--status-error) !important;
+}
+
+:root:not([data-theme='dark']) .hover\:bg-slate-800:hover,
+:root:not([data-theme='dark']) .hover\:bg-slate-800\/50:hover,
+:root:not([data-theme='dark']) .hover\:bg-slate-800\/60:hover,
+:root:not([data-theme='dark']) .hover\:bg-slate-800\/70:hover,
+:root:not([data-theme='dark']) .hover\:bg-slate-700:hover {
+  background-color: var(--bg-hover) !important;
+}

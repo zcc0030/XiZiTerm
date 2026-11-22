@@ -1,0 +1,17 @@
+node_modules/
+dist/
+out/
+release/
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+*.db
+*.db-wal
+*.db-shm
+vault/
+apps/server/data/*
+!apps/server/data/.gitkeep
