@@ -9,6 +9,10 @@
   </p>
 </div>
 
+<p align="center">
+  <img src="screenshot/01-dark.png" alt="XiZiTerm 主界面预览（现代夜间主题）" width="100%" />
+</p>
+
 ---
 
 ## 项目简介
@@ -25,6 +29,45 @@
   - **免服务器 WebDAV 同步**：原生支持坚果云、飞牛 fnOS、群晖 Synology、Nextcloud、Alist / OpenList 等标准 WebDAV 服务，自动检测 NAS 共享目录权限并通过 ETag 乐观锁防并发冲突。
   - **自托管 VPS 同步服务端**：内置轻量级 `Fastify + SQLite` Docker 服务端，客户端内提供完整部署指南与 SSH 一键自动部署工具（含端口占用检测，不干扰原服务）。
 - **7 套内置主题配色（UI 与终端完全同步）**：内置 **正常日间 (`light`)**、**现代夜间 (`dark`)**、**多巴胺撞色 (`dopamine`)**、**莫兰迪灰调 (`morandi`)**、**赛博朋克 (`cyberpunk`)**、**复古怀旧 (`retro` / Gruvbox)**、**北欧冰川 (`nordic` / Nord)**，切换时应用面板、监控折线图与所有已打开终端的 16 色 ANSI 调色板实时同步。
+
+---
+
+## 界面与内置主题一览
+
+> 上方主图为默认的 **现代夜间 (`dark`)** 主题，以下为其余 6 套内置同步主题实拍（点击图片可查看原尺寸高清大图）：
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshot/02-light.png" alt="正常日间 (Light)" /><br />
+      <sub><b>正常日间 (Light)</b> — 清爽高对比度办公护眼</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshot/04-morandi.png" alt="莫兰迪灰调 (Morandi)" /><br />
+      <sub><b>莫兰迪灰调 (Morandi)</b> — 暖燕麦白与雾霾蓝纸质阅读感</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshot/03-dopamine.png" alt="多巴胺撞色 (Dopamine)" /><br />
+      <sub><b>多巴胺撞色 (Dopamine)</b> — 紫罗兰底搭配粉/薄荷绿/柠檬黄活力折线</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshot/05-cyberpunk.png" alt="赛博朋克 (Cyberpunk)" /><br />
+      <sub><b>赛博朋克 (Cyberpunk)</b> — 极暗纯黑底 + 电光蓝与霓虹粉双主色辉光</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="screenshot/06-retro.png" alt="复古怀旧 (Retro / Gruvbox)" /><br />
+      <sub><b>复古怀旧 (Retro / Gruvbox)</b> — 经典暖泥土色调与微圆角 CRT 质感</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="screenshot/07-nordic.png" alt="北欧冰川 (Nordic / Nord)" /><br />
+      <sub><b>北欧冰川 (Nordic / Nord)</b> — Nord 冷灰暗蓝基调与极光绿</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
