@@ -40,22 +40,10 @@ extraResources:
 win:
   icon: build/icon.ico
   target:
-    - target: nsis
+    - target: zip
       arch:
         - x64
-    - target: portable
-      arch:
-        - x64
-
-nsis:
-  oneClick: false
-  allowToChangeInstallationDirectory: true
-  createDesktopShortcut: true
-  createStartMenuShortcut: true
-  artifactName: ${productName}-Setup-${version}.${ext}
-
-portable:
-  artifactName: ${productName}-Portable-${version}.${ext}
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
 
 mac:
   icon: build/icon.png

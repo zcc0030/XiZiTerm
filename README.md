@@ -77,9 +77,13 @@
 
 | 平台 | 安装包类型 |
 | :--- | :--- |
-| **Windows (x64)** | `XiZiTerm-Setup-x.y.z.exe`（安装版） / `XiZiTerm-Portable-x.y.z.exe`（单文件便携版） / **Scoop 命令行安装** |
+| **Windows (x64)** | `XiZiTerm-x.y.z-win-x64.zip`（绿色免安装版，解压即用） / **Scoop 命令行安装** |
 | **macOS (Apple Silicon / Intel)** | `XiZiTerm-x.y.z-arm64.dmg` / `XiZiTerm-x.y.z-x64.dmg` |
 | **Linux (x64)** | `XiZiTerm-x.y.z-x86_64.AppImage` / `XiZiTerm-x.y.z-amd64.deb` |
+
+> **运行提示**：
+> - **Windows**：推荐使用 `7-Zip` / `Bandizip` 解压 `win-x64.zip` 或使用下方 **Scoop** 安装，可直接免拦截启动；若使用系统自带资源管理器解压后首次打开遇到 SmartScreen 提示，点击「更多信息 → 仍要运行」即可。
+> - **macOS**：开源构建未附加付费 Apple 开发者签名，首次打开如提示「无法验证开发者」，可在终端执行 `sudo xattr -rd com.apple.quarantine /Applications/XiZiTerm.app` 后正常启动。
 
 ### Windows 使用 Scoop 一键安装 / 升级 / 卸载
 
@@ -94,8 +98,6 @@ scoop install xiziterm
 scoop update; scoop update xiziterm
 scoop uninstall xiziterm
 ```
-
-> **macOS 提示**：开源构建未附加付费 Apple 开发者签名，首次打开如提示「无法验证开发者」，可在终端执行 `sudo xattr -rd com.apple.quarantine /Applications/XiZiTerm.app` 后正常启动。
 
 ---
 
