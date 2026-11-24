@@ -4,6 +4,8 @@ import type {
   SshConnectResult,
   SshDataEvent,
   SshStateEvent,
+  SshTestConnectionRequest,
+  SshTestConnectionResult,
 } from '@xiziterm/shared';
 import { vaultService } from './vault.service';
 
@@ -259,11 +261,141 @@ export class SshService {
       void this.disconnect(sessionId);
     }
   }
+
+  async testConnection(
+    req: SshTestConnectionRequest
+  ): Promise<SshTestConnectionResult> {
+    const hostname = req.hostname?.trim();
+    const username = req.username?.trim();
+    const port = Number(req.port);
+
+    if (!hostname) {
+      return { ok: false, error: '请先输入主机地址 (IP 或域名)' };
+    }
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      return { ok: false, error: '端口必须是 1-65535 之间的整数' };
+    }
+    if (!username) {
+      return { ok: false, error: '请先输入 SSH 用户名' };
+    }
+    if (req.authType === 'privateKey' && !req.privateKey?.trim()) {
+      return { ok: false, error: '请粘贴或导入 SSH 私钥内容后再测试' };
+    }
+
+    const connectConfig: ConnectConfig = {
+      host: hostname,
+      port,
+      username,
+      readyTimeout: 10_000,
+      tryKeyboard: req.authType === 'password',
+    };
+
+    if (req.authType === 'password') {
+      connectConfig.password = req.password ?? '';
+    } else {
+      connectConfig.privateKey = req.privateKey!;
+      if (req.passphrase) {
+        connectConfig.passphrase = req.passphrase;
+      }
+    }
+
+    const startedAt = Date.now();
+    const client = new Client();
+
+    return new Promise<SshTestConnectionResult>((resolve) => {
+      let settled = false;
+      const finish = (res: SshTestConnectionResult) => {
+        if (settled) return;
+        settled = true;
+        try {
+          client.end();
+        } catch {
+          // ignore
+        }
+        resolve(res);
+      };
+
+      const overallTimer = setTimeout(() => {
+        finish({
+          ok: false,
+          error: '连接超时：10 秒内未能完成握手，请检查地址、端口与防火墙',
+        });
+      }, 11_500);
+
+      client.on(
+        'keyboard-interactive',
+        (_name, _instructions, _lang, prompts, finishAuth) => {
+          if (req.authType === 'password' && prompts.length > 0) {
+            finishAuth(prompts.map(() => req.password ?? ''));
+          } else {
+            finishAuth([]);
+          }
+        }
+      );
+
+      client.on('ready', () => {
+        const latencyMs = Date.now() - startedAt;
+        // Best-effort lightweight remote OS probe (2s cap; still succeeds on shell-restricted hosts)
+        const execTimer = setTimeout(() => {
+          clearTimeout(overallTimer);
+          finish({ ok: true, latencyMs });
+        }, 2000);
+
+        client.exec('uname -srm 2>/dev/null', (err, stream) => {
+          if (err) {
+            clearTimeout(execTimer);
+            clearTimeout(overallTimer);
+            finish({ ok: true, latencyMs });
+            return;
+          }
+          let out = '';
+          stream.on('data', (chunk: Buffer) => {
+            out += chunk.toString('utf8');
+          });
+          stream.stderr.on('data', () => {
+            // ignore stderr
+          });
+          stream.on('close', () => {
+            clearTimeout(execTimer);
+            clearTimeout(overallTimer);
+            const remoteInfo = out.trim().split(/\r?\n/)[0]?.slice(0, 80);
+            finish({
+              ok: true,
+              latencyMs,
+              remoteInfo: remoteInfo || undefined,
+            });
+          });
+        });
+      });
+
+      client.on('error', (err) => {
+        clearTimeout(overallTimer);
+        finish({ ok: false, error: formatSshError(err) });
+      });
+
+      try {
+        client.connect(connectConfig);
+      } catch (err) {
+        clearTimeout(overallTimer);
+        finish({
+          ok: false,
+          error: err instanceof Error ? formatSshError(err) : 'SSH 连接初始化失败',
+        });
+      }
+    });
+  }
 }
 
 function formatSshError(err: Error & { level?: string; code?: string }): string {
   if (err.level === 'client-authentication') {
     return '身份认证失败：请检查用户名、密码或 SSH 私钥/Passphrase';
+  }
+  if (
+    err.message?.includes('Cannot parse privateKey') ||
+    err.message?.includes('Encrypted private OpenSSH key') ||
+    err.message?.includes('bad decrypt')
+  ) {
+    return 'SSH 私钥解析失败：请检查私钥格式，或确认私钥口令 (Passphrase) 是否正确';
   }
   if (err.code === 'ECONNREFUSED') {
     return '连接被拒绝：请检查目标 IP、端口以及 SSH 服务是否开启';

@@ -31,7 +31,7 @@ async function main(): Promise<void> {
   app.get('/api/health', async () => ({
     status: 'ok',
     service: 'xiziterm-sync-server',
-    version: '0.1.0',
+    version: '0.1.1',
     timestamp: Date.now(),
   }));
 

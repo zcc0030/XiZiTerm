@@ -1,6 +1,19 @@
 import * as React from 'react';
-import { FileKey2, KeyRound, Lock } from 'lucide-react';
-import type { HostAuthType, HostConfig, HostInput } from '@xiziterm/shared';
+import {
+  CheckCircle2,
+  FileKey2,
+  KeyRound,
+  Loader2,
+  Lock,
+  PlugZap,
+  XCircle,
+} from 'lucide-react';
+import type {
+  HostAuthType,
+  HostConfig,
+  HostInput,
+  SshTestConnectionResult,
+} from '@xiziterm/shared';
 import { ModalDialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,9 +51,15 @@ export function HostFormDialog({
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
 
+  const [testing, setTesting] = React.useState(false);
+  const [testResult, setTestResult] =
+    React.useState<SshTestConnectionResult | null>(null);
+
   React.useEffect(() => {
     if (!open) return;
     setError(null);
+    setTesting(false);
+    setTestResult(null);
     if (editingHost) {
       setName(editingHost.name);
       setGroupId(editingHost.groupId ?? '');
@@ -70,6 +89,11 @@ export function HostFormDialog({
     }
   }, [open, editingHost, defaultGroupId]);
 
+  const clearConnectionFeedback = () => {
+    if (testResult) setTestResult(null);
+    if (error) setError(null);
+  };
+
   const handleImportKeyFile = async () => {
     const res = await window.xiziterm.dialog.openPrivateKeyFile();
     if (!res.ok) {
@@ -78,7 +102,47 @@ export function HostFormDialog({
     }
     if (res.data) {
       setPrivateKey(res.data.content);
-      setError(null);
+      clearConnectionFeedback();
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setError(null);
+    setTestResult(null);
+
+    const parsedPort = Number(port);
+    if (!hostname.trim()) {
+      setError('请先填写主机地址 (IP 或域名)');
+      return;
+    }
+    if (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
+      setError('端口必须是 1-65535 之间的整数');
+      return;
+    }
+    if (!username.trim()) {
+      setError('请先填写 SSH 用户名');
+      return;
+    }
+
+    setTesting(true);
+    try {
+      const res = await window.xiziterm.ssh.testConnection({
+        hostname: hostname.trim(),
+        port: parsedPort,
+        username: username.trim(),
+        authType,
+        password: authType === 'password' ? password : undefined,
+        privateKey: authType === 'privateKey' ? privateKey : undefined,
+        passphrase: authType === 'privateKey' ? passphrase : undefined,
+      });
+      setTestResult(res);
+    } catch (err) {
+      setTestResult({
+        ok: false,
+        error: err instanceof Error ? err.message : '连接测试调用失败',
+      });
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -134,7 +198,7 @@ export function HostFormDialog({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-300">
+            <label className="text-xs font-medium text-theme-primary">
               主机名称 / 别名 *
             </label>
             <Input
@@ -146,11 +210,13 @@ export function HostFormDialog({
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-300">所属分组</label>
+            <label className="text-xs font-medium text-theme-primary">
+              所属分组
+            </label>
             <select
               value={groupId}
               onChange={(e) => setGroupId(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-slate-700/90 bg-slate-900/90 px-3 text-sm text-slate-100 focus:border-cyan-500/80 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+              className="flex h-9 w-full rounded-md border border-theme-border bg-theme-input px-3 text-sm text-theme-primary focus:border-theme-accent focus:outline-none focus:ring-1 focus:ring-theme-accent/40"
             >
               <option value="">未分组</option>
               {groups.map((g) => (
@@ -164,34 +230,47 @@ export function HostFormDialog({
 
         <div className="grid grid-cols-12 gap-3">
           <div className="col-span-6 space-y-1">
-            <label className="text-xs font-medium text-slate-300">
+            <label className="text-xs font-medium text-theme-primary">
               主机地址 (IP / 域名) *
             </label>
             <Input
               value={hostname}
-              onChange={(e) => setHostname(e.target.value)}
+              onChange={(e) => {
+                setHostname(e.target.value);
+                clearConnectionFeedback();
+              }}
               placeholder="192.168.1.100 或 vps.example.com"
               className="font-mono"
               required
             />
           </div>
           <div className="col-span-2 space-y-1">
-            <label className="text-xs font-medium text-slate-300">端口 *</label>
+            <label className="text-xs font-medium text-theme-primary">
+              端口 *
+            </label>
             <Input
               type="number"
               min={1}
               max={65535}
               value={port}
-              onChange={(e) => setPort(e.target.value)}
+              onChange={(e) => {
+                setPort(e.target.value);
+                clearConnectionFeedback();
+              }}
               className="font-mono"
               required
             />
           </div>
           <div className="col-span-4 space-y-1">
-            <label className="text-xs font-medium text-slate-300">用户名 *</label>
+            <label className="text-xs font-medium text-theme-primary">
+              用户名 *
+            </label>
             <Input
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                clearConnectionFeedback();
+              }}
               placeholder="root / ubuntu"
               className="font-mono"
               required
@@ -200,17 +279,22 @@ export function HostFormDialog({
         </div>
 
         {/* Auth Type Switcher */}
-        <div className="space-y-2 rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+        <div className="space-y-2 rounded-lg border border-theme-border bg-theme-input p-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-300">认证方式</span>
-            <div className="inline-flex rounded-md border border-slate-800 bg-slate-900 p-0.5">
+            <span className="text-xs font-medium text-theme-primary">
+              认证方式
+            </span>
+            <div className="inline-flex rounded-md border border-theme-border bg-theme-elevated p-0.5">
               <button
                 type="button"
-                onClick={() => setAuthType('password')}
+                onClick={() => {
+                  setAuthType('password');
+                  clearConnectionFeedback();
+                }}
                 className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
                   authType === 'password'
-                    ? 'bg-cyan-500/20 text-cyan-300'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-theme-accent-soft text-theme-accent'
+                    : 'text-theme-muted hover:text-theme-primary'
                 }`}
               >
                 <Lock className="h-3.5 w-3.5" />
@@ -218,11 +302,14 @@ export function HostFormDialog({
               </button>
               <button
                 type="button"
-                onClick={() => setAuthType('privateKey')}
+                onClick={() => {
+                  setAuthType('privateKey');
+                  clearConnectionFeedback();
+                }}
                 className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
                   authType === 'privateKey'
-                    ? 'bg-cyan-500/20 text-cyan-300'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-theme-accent-soft text-theme-accent'
+                    : 'text-theme-muted hover:text-theme-primary'
                 }`}
               >
                 <KeyRound className="h-3.5 w-3.5" />
@@ -233,11 +320,14 @@ export function HostFormDialog({
 
           {authType === 'password' ? (
             <div className="space-y-1 pt-1">
-              <label className="text-xs text-slate-400">登录密码</label>
+              <label className="text-xs text-theme-muted">登录密码</label>
               <Input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  clearConnectionFeedback();
+                }}
                 placeholder="输入 SSH 密码"
                 className="font-mono"
               />
@@ -245,7 +335,7 @@ export function HostFormDialog({
           ) : (
             <div className="space-y-2.5 pt-1">
               <div className="flex items-center justify-between">
-                <label className="text-xs text-slate-400">
+                <label className="text-xs text-theme-muted">
                   私钥内容 (PEM / OpenSSH 格式)
                 </label>
                 <Button
@@ -260,18 +350,24 @@ export function HostFormDialog({
               </div>
               <Textarea
                 value={privateKey}
-                onChange={(e) => setPrivateKey(e.target.value)}
+                onChange={(e) => {
+                  setPrivateKey(e.target.value);
+                  clearConnectionFeedback();
+                }}
                 placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
                 className="min-h-[110px] font-mono text-xs"
               />
               <div className="space-y-1">
-                <label className="text-xs text-slate-400">
+                <label className="text-xs text-theme-muted">
                   私钥口令 Passphrase（如私钥无加密可留空）
                 </label>
                 <Input
                   type="password"
                   value={passphrase}
-                  onChange={(e) => setPassphrase(e.target.value)}
+                  onChange={(e) => {
+                    setPassphrase(e.target.value);
+                    clearConnectionFeedback();
+                  }}
                   placeholder="可选 Passphrase"
                   className="font-mono"
                 />
@@ -282,7 +378,7 @@ export function HostFormDialog({
 
         <div className="grid grid-cols-12 gap-3">
           <div className="col-span-8 space-y-1">
-            <label className="text-xs font-medium text-slate-300">
+            <label className="text-xs font-medium text-theme-primary">
               标签（多个以逗号分隔）
             </label>
             <Input
@@ -292,7 +388,7 @@ export function HostFormDialog({
             />
           </div>
           <div className="col-span-4 space-y-1">
-            <label className="text-xs font-medium text-slate-300">
+            <label className="text-xs font-medium text-theme-primary">
               KeepAlive (秒)
             </label>
             <Input
@@ -307,7 +403,7 @@ export function HostFormDialog({
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-300">备注</label>
+          <label className="text-xs font-medium text-theme-primary">备注</label>
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -316,19 +412,74 @@ export function HostFormDialog({
           />
         </div>
 
+        {testResult && (
+          <div
+            className={`flex items-start gap-2 rounded-md border px-3 py-2 text-xs ${
+              testResult.ok
+                ? 'border-theme-online/45 bg-theme-online-soft text-theme-online'
+                : 'border-theme-error/45 bg-theme-error-soft text-theme-error'
+            }`}
+          >
+            {testResult.ok ? (
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            ) : (
+              <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            )}
+            <div className="min-w-0 flex-1 leading-relaxed">
+              {testResult.ok ? (
+                <>
+                  <span className="font-medium">
+                    SSH 连通性验证通过
+                    {testResult.latencyMs !== undefined
+                      ? `（耗时 ${testResult.latencyMs} ms）`
+                      : ''}
+                  </span>
+                  {testResult.remoteInfo && (
+                    <span className="ml-1.5 font-mono opacity-90">
+                      · {testResult.remoteInfo}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span>连通性测试失败：{testResult.error}</span>
+              )}
+            </div>
+          </div>
+        )}
+
         {error && (
-          <div className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+          <div className="rounded-md border border-theme-error/45 bg-theme-error-soft px-3 py-2 text-xs text-theme-error">
             {error}
           </div>
         )}
 
-        <div className="flex justify-end gap-2 border-t border-slate-800 pt-3">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            取消
+        <div className="flex items-center justify-between gap-2 border-t border-theme-border pt-3">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => void handleTestConnection()}
+            disabled={testing || saving}
+          >
+            {testing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-theme-accent" />
+            ) : (
+              <PlugZap className="h-3.5 w-3.5 text-theme-accent" />
+            )}
+            {testing ? '测试连接中...' : '测试连通性'}
           </Button>
-          <Button type="submit" disabled={saving}>
-            {saving ? '加密保存中...' : editingHost ? '保存修改' : '添加主机'}
-          </Button>
+
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              取消
+            </Button>
+            <Button type="submit" disabled={saving || testing}>
+              {saving
+                ? '加密保存中...'
+                : editingHost
+                  ? '保存修改'
+                  : '添加主机'}
+            </Button>
+          </div>
         </div>
       </form>
     </ModalDialog>

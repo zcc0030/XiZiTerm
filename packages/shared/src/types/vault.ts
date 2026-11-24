@@ -82,6 +82,7 @@ export interface UserPreferences extends SyncableRecord {
   cursorBlink: boolean;
   copyOnSelect: boolean;
   rightClickPaste: boolean;
+  rightClickAction?: 'menu' | 'paste';
   autoReconnectPrompt: boolean;
   scrollback: number;
 }
@@ -97,7 +98,8 @@ export const DEFAULT_PREFERENCES: Omit<
   cursorStyle: 'bar',
   cursorBlink: true,
   copyOnSelect: false,
-  rightClickPaste: true,
+  rightClickPaste: false,
+  rightClickAction: 'menu',
   autoReconnectPrompt: true,
   scrollback: 5000,
 };

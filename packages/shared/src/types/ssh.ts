@@ -16,6 +16,23 @@ export interface SshConnectResult {
   error?: string;
 }
 
+export interface SshTestConnectionRequest {
+  hostname: string;
+  port: number;
+  username: string;
+  authType: 'password' | 'privateKey';
+  password?: string;
+  privateKey?: string;
+  passphrase?: string;
+}
+
+export interface SshTestConnectionResult {
+  ok: boolean;
+  latencyMs?: number;
+  remoteInfo?: string;
+  error?: string;
+}
+
 export interface SshResizePayload {
   sessionId: string;
   cols: number;

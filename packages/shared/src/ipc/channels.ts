@@ -15,6 +15,8 @@ import type {
   SshDataEvent,
   SshResizePayload,
   SshStateEvent,
+  SshTestConnectionRequest,
+  SshTestConnectionResult,
 } from '../types/ssh.js';
 import type {
   SftpListResult,
@@ -55,6 +57,7 @@ export const IPC_CHANNELS = {
   VAULT_UPDATE_PREFERENCES: 'vault:update-preferences',
   DIALOG_OPEN_KEY_FILE: 'dialog:open-key-file',
   SSH_CONNECT: 'ssh:connect',
+  SSH_TEST_CONNECTION: 'ssh:test-connection',
   SSH_WRITE: 'ssh:write',
   SSH_RESIZE: 'ssh:resize',
   SSH_DISCONNECT: 'ssh:disconnect',
@@ -130,6 +133,9 @@ export interface XiZiTermApi {
   };
   ssh: {
     connect: (req: SshConnectRequest) => Promise<SshConnectResult>;
+    testConnection: (
+      req: SshTestConnectionRequest
+    ) => Promise<SshTestConnectionResult>;
     write: (sessionId: string, data: string) => void;
     resize: (payload: SshResizePayload) => void;
     disconnect: (sessionId: string) => Promise<void>;

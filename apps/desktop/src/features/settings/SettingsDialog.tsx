@@ -34,8 +34,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [copyOnSelect, setCopyOnSelect] = React.useState(
     preferences.copyOnSelect
   );
-  const [rightClickPaste, setRightClickPaste] = React.useState(
-    preferences.rightClickPaste
+  const [rightClickDirectPaste, setRightClickDirectPaste] = React.useState(
+    preferences.rightClickAction === 'paste'
   );
   const [autoReconnectPrompt, setAutoReconnectPrompt] = React.useState(
     preferences.autoReconnectPrompt
@@ -50,7 +50,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     setCursorStyle(preferences.cursorStyle);
     setCursorBlink(preferences.cursorBlink);
     setCopyOnSelect(preferences.copyOnSelect);
-    setRightClickPaste(preferences.rightClickPaste);
+    setRightClickDirectPaste(preferences.rightClickAction === 'paste');
     setAutoReconnectPrompt(preferences.autoReconnectPrompt);
     setScrollback(preferences.scrollback);
   }, [open, preferences]);
@@ -64,7 +64,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       cursorStyle,
       cursorBlink,
       copyOnSelect,
-      rightClickPaste,
+      rightClickPaste: rightClickDirectPaste,
+      rightClickAction: rightClickDirectPaste ? 'paste' : 'menu',
       autoReconnectPrompt,
       scrollback: Math.min(50000, Math.max(500, Number(scrollback) || 5000)),
     });
@@ -207,11 +208,13 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             />
           </label>
           <label className="flex cursor-pointer items-center justify-between">
-            <span className="text-theme-primary">鼠标右键快速粘贴</span>
+            <span className="text-theme-primary">
+              鼠标右键直接粘贴（关闭时默认弹出复制 / 粘贴菜单）
+            </span>
             <input
               type="checkbox"
-              checked={rightClickPaste}
-              onChange={(e) => setRightClickPaste(e.target.checked)}
+              checked={rightClickDirectPaste}
+              onChange={(e) => setRightClickDirectPaste(e.target.checked)}
               className="h-4 w-4 accent-[var(--accent-primary)]"
             />
           </label>

@@ -3,6 +3,7 @@ import {
   IPC_CHANNELS,
   type SshConnectRequest,
   type SshResizePayload,
+  type SshTestConnectionRequest,
 } from '@xiziterm/shared';
 import { sshService } from '../services/ssh.service';
 
@@ -26,6 +27,13 @@ export function registerSshIpc(getMainWindow: () => BrowserWindow | null): void 
     IPC_CHANNELS.SSH_CONNECT,
     async (_event, req: SshConnectRequest) => {
       return sshService.connect(req);
+    }
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.SSH_TEST_CONNECTION,
+    async (_event, req: SshTestConnectionRequest) => {
+      return sshService.testConnection(req);
     }
   );
 

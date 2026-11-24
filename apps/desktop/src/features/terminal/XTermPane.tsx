@@ -6,9 +6,13 @@ import { SearchAddon } from '@xterm/addon-search';
 import '@xterm/xterm/css/xterm.css';
 import {
   AlertTriangle,
+  CheckSquare,
   ChevronDown,
   ChevronUp,
+  ClipboardPaste,
   Columns2,
+  Copy,
+  Eraser,
   Loader2,
   RefreshCw,
   Rows2,
@@ -50,7 +54,9 @@ export function XTermPane({
   onSplit,
   onClose,
 }: XTermPaneProps) {
+  const paneRootRef = React.useRef<HTMLDivElement | null>(null);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const contextMenuRef = React.useRef<HTMLDivElement | null>(null);
   const termRef = React.useRef<XTerm | null>(null);
   const fitAddonRef = React.useRef<FitAddon | null>(null);
   const searchAddonRef = React.useRef<SearchAddon | null>(null);
@@ -70,6 +76,11 @@ export function XTermPane({
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [reconnecting, setReconnecting] = React.useState(false);
+  const [contextMenu, setContextMenu] = React.useState<{
+    x: number;
+    y: number;
+    selectedText: string;
+  } | null>(null);
 
   const connectSession = React.useCallback(async () => {
     const term = termRef.current;
@@ -325,15 +336,99 @@ export function XTermPane({
     return () => window.clearTimeout(timer);
   }, [isActiveTab, isActivePane, sessionId]);
 
+  React.useEffect(() => {
+    if (!contextMenu) return;
+    const onPointerDown = (ev: MouseEvent) => {
+      if (
+        contextMenuRef.current &&
+        !contextMenuRef.current.contains(ev.target as Node)
+      ) {
+        setContextMenu(null);
+      }
+    };
+    const onKeyDown = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') {
+        setContextMenu(null);
+        termRef.current?.focus();
+      }
+    };
+    const onWheel = () => setContextMenu(null);
+
+    window.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('wheel', onWheel, { passive: true });
+    return () => {
+      window.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('wheel', onWheel);
+    };
+  }, [contextMenu]);
+
   const handleContextMenu = (e: React.MouseEvent) => {
-    if (!preferences.rightClickPaste) return;
     e.preventDefault();
+    onFocusPane();
+
+    // Only paste directly if user explicitly switched rightClickAction to 'paste'
+    if (preferences.rightClickAction === 'paste') {
+      void navigator.clipboard.readText().then((text) => {
+        if (text) {
+          termRef.current?.paste(text);
+          termRef.current?.focus();
+        }
+      });
+      return;
+    }
+
+    const selectedText = termRef.current?.getSelection() ?? '';
+    const rootRect = paneRootRef.current?.getBoundingClientRect();
+    const menuWidth = 172;
+    const menuHeight = 148;
+
+    let x = e.clientX;
+    let y = e.clientY;
+    if (rootRect) {
+      x = Math.max(
+        6,
+        Math.min(e.clientX - rootRect.left, rootRect.width - menuWidth - 6)
+      );
+      y = Math.max(
+        30,
+        Math.min(e.clientY - rootRect.top, rootRect.height - menuHeight - 6)
+      );
+    }
+
+    setContextMenu({ x, y, selectedText });
+  };
+
+  const handleMenuCopy = () => {
+    const text = contextMenu?.selectedText || termRef.current?.getSelection();
+    if (text) {
+      void navigator.clipboard.writeText(text);
+    }
+    setContextMenu(null);
+    termRef.current?.focus();
+  };
+
+  const handleMenuPaste = () => {
+    setContextMenu(null);
     void navigator.clipboard.readText().then((text) => {
       if (text) {
         termRef.current?.paste(text);
-        termRef.current?.focus();
       }
+      termRef.current?.focus();
     });
+  };
+
+  const handleMenuSelectAll = () => {
+    setContextMenu(null);
+    termRef.current?.selectAll();
+    termRef.current?.focus();
+  };
+
+  const handleMenuClear = () => {
+    setContextMenu(null);
+    termRef.current?.clear();
+    termRef.current?.focus();
   };
 
   const runSearch = (direction: 'next' | 'prev') => {
@@ -359,6 +454,7 @@ export function XTermPane({
 
   return (
     <div
+      ref={paneRootRef}
       data-pane-id={paneId}
       onMouseDown={onFocusPane}
       className={`nt-pane-card relative flex h-full w-full flex-col overflow-hidden bg-theme-base ${
@@ -525,6 +621,73 @@ export function XTermPane({
             className="rounded p-1 text-theme-muted hover:bg-theme-hover hover:text-theme-primary"
           >
             <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Terminal Right-Click Context Menu */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`,
+            boxShadow: 'var(--panel-shadow)',
+          }}
+          className="absolute z-30 w-44 overflow-hidden rounded-lg border border-theme-border bg-theme-sidebar p-1 text-xs"
+        >
+          <button
+            type="button"
+            disabled={!contextMenu.selectedText}
+            onClick={handleMenuCopy}
+            className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-theme-primary transition-colors hover:bg-theme-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            <span className="flex items-center gap-2">
+              <Copy className="h-3.5 w-3.5 text-theme-accent" />
+              复制
+            </span>
+            <span className="font-mono text-[10px] text-theme-muted">
+              Ctrl+Shift+C
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleMenuPaste}
+            className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-theme-primary transition-colors hover:bg-theme-hover"
+          >
+            <span className="flex items-center gap-2">
+              <ClipboardPaste className="h-3.5 w-3.5 text-theme-online" />
+              粘贴
+            </span>
+            <span className="font-mono text-[10px] text-theme-muted">
+              Ctrl+Shift+V
+            </span>
+          </button>
+
+          <div className="my-1 border-t border-theme-border/70" />
+
+          <button
+            type="button"
+            onClick={handleMenuSelectAll}
+            className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-theme-primary transition-colors hover:bg-theme-hover"
+          >
+            <span className="flex items-center gap-2">
+              <CheckSquare className="h-3.5 w-3.5 text-theme-muted" />
+              全选输出
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleMenuClear}
+            className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-theme-primary transition-colors hover:bg-theme-hover"
+          >
+            <span className="flex items-center gap-2">
+              <Eraser className="h-3.5 w-3.5 text-theme-warn" />
+              清空屏幕
+            </span>
           </button>
         </div>
       )}
