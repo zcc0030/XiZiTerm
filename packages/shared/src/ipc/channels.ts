@@ -194,6 +194,12 @@ export interface XiZiTermApi {
       content: string
     ) => Promise<ActionResult>;
     getPathForFile: (file: File) => string;
+    onNativeFileDrop?: (
+      listener: (event: {
+        type: 'enter' | 'over' | 'leave' | 'drop';
+        paths?: string[];
+      }) => void
+    ) => () => void;
     onTransferProgress: (
       listener: (event: SftpTransferProgressEvent) => void
     ) => () => void;

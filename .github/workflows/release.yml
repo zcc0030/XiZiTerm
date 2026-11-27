@@ -16,11 +16,15 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            script: dist:win
+            platform: win
           - os: macos-latest
-            script: dist:mac
+            platform: mac-arm64
+            rust_target: aarch64-apple-darwin
+          - os: macos-latest
+            platform: mac-x64
+            rust_target: x86_64-apple-darwin
           - os: ubuntu-latest
-            script: dist:linux
+            platform: linux
 
     runs-on: ${{ matrix.os }}
 
@@ -28,38 +32,59 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Linux system dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Setup Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target || '' }}
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: 'apps/desktop/src-tauri -> target'
+          key: ${{ matrix.platform }}
+
+      - name: Install npm dependencies
         run: npm ci
 
-      - name: Ensure dual-arch node-pty prebuilts on macOS
-        if: matrix.os == 'macos-latest'
-        run: |
-          for pkg in "@lydell/node-pty-darwin-x64" "@lydell/node-pty-darwin-arm64"; do
-            dir="node_modules/$pkg"
-            if [ ! -d "$dir" ]; then
-              tgz=$(npm pack "$pkg@1.2.0-beta.18")
-              mkdir -p "$dir"
-              tar -xzf "$tgz" -C "$dir" --strip-components=1
-              rm -f "$tgz"
-            fi
-          done
-          chmod +x node_modules/@lydell/node-pty-darwin-*/spawn-helper || true
+      - name: Package Windows portable ZIP
+        if: matrix.platform == 'win'
+        run: npm run dist:win
 
-      - name: Build & package installers
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npm run ${{ matrix.script }}
+      - name: Package macOS DMG & ZIP
+        if: startsWith(matrix.platform, 'mac-')
+        run: |
+          npx --workspace=@xiziterm/desktop tauri build --target ${{ matrix.rust_target }} --bundles dmg,app
+          VERSION=$(node -p "require('./package.json').version")
+          ARCH=$( [ "${{ matrix.rust_target }}" = "aarch64-apple-darwin" ] && echo "arm64" || echo "x64" )
+          mkdir -p apps/desktop/release
+          cp apps/desktop/src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.dmg "apps/desktop/release/XiZiTerm-${VERSION}-${ARCH}.dmg"
+          ditto -c -k --sequesterRsrc --keepParent "apps/desktop/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos/XiZiTerm.app" "apps/desktop/release/XiZiTerm-${VERSION}-${ARCH}.zip"
+
+      - name: Package Linux DEB & AppImage
+        if: matrix.platform == 'linux'
+        run: |
+          npm run dist:linux
+          VERSION=$(node -p "require('./package.json').version")
+          mkdir -p apps/desktop/release
+          cp apps/desktop/src-tauri/target/release/bundle/deb/*.deb "apps/desktop/release/XiZiTerm-${VERSION}-amd64.deb"
+          cp apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage "apps/desktop/release/XiZiTerm-${VERSION}-x86_64.AppImage"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: XiZiTerm-${{ matrix.os }}
+          name: XiZiTerm-${{ matrix.platform }}
           path: |
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip

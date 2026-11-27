@@ -17,12 +17,12 @@
 
 ## 项目简介
 
-**XiZiTerm** 是一款注重数据主权与操作体验的跨平台 SSH 终端客户端（支持 **Windows / macOS / Linux**）。所有主机凭据、SSH 私钥、快捷命令与偏好设置均在本地通过主密码派生密钥进行 **`AES-256-GCM` 端到端零知识加密（E2EE）**，支持通过 **WebDAV 网盘 / NAS**（免建站）或 **Docker 自托管同步服务端** 在多台设备间安全同步。
+**XiZiTerm** 是一款基于 **Tauri v2 + Rust** 打造的超轻量级、注重数据主权与操作体验的跨平台 SSH 终端客户端（支持 **Windows / macOS / Linux**，Windows 绿色压缩包仅 **~3.8 MB**、单文件 `.exe` 仅 **~8.8 MB**）。所有主机凭据、SSH 私钥、快捷命令与偏好设置均在本地通过主密码派生密钥进行 **`AES-256-GCM` 端到端零知识加密（E2EE）**，支持通过 **WebDAV 网盘 / NAS**（免建站）或 **Docker 自托管同步服务端** 在多台设备间安全同步。
 
 ### 核心功能
 
-- **内置跨平台本地终端（免配置默认主机）**：开箱即用自动探测并调用本机各类原生终端（Windows 支持 `PowerShell 7`、`Windows PowerShell`、`CMD`、`Git Bash`、`WSL` 各发行版、`MSYS2`；macOS / Linux 支持 `$SHELL`、`Zsh`、`Bash`、`Fish`、`pwsh`、`Nushell`），支持与远程 SSH 在同一标签页混合分屏。
-- **多标签与自由分屏终端**：基于 `xterm.js` + `ssh2`，支持密码 / 私钥（含 Passphrase）认证、新建时一键连通性延迟测试、多级分组与标签筛选、同一标签页内任意左右/上下递归分屏、终端内搜索与断线一键重连。
+- **内置跨平台本地终端（免配置默认主机）**：基于原生 `portable-pty`，开箱即用自动探测并调用本机各类终端（Windows 支持 `PowerShell 7`、`Windows PowerShell`、`CMD`、`Git Bash`、`WSL` 各发行版、`MSYS2`；macOS / Linux 支持 `$SHELL`、`Zsh`、`Bash`、`Fish`、`pwsh`、`Nushell`），支持与远程 SSH 在同一标签页混合分屏。
+- **多标签与自由分屏终端**：基于 `xterm.js` + 纯 Rust 异步 `russh`，支持密码 / `keyboard-interactive` / 私钥（含 Passphrase）认证、新建时一键连通性延迟测试、多级分组与标签筛选、同一标签页内任意左右/上下递归分屏、终端内搜索与断线一键重连。
 - **内置可视化 SFTP 文件管理**：直接复用当前 SSH 连接通道，支持面包屑路径跳转、本地文件/文件夹拖拽上传、传输进度展示、`chmod` 八进制/九宫格权限修改，以及远程配置文件在线编辑（`Ctrl+S` 直存）。
 - **无 Agent 实时主机座舱**：无需在目标服务器安装任何监控 Agent，连接后自动通过只读系统接口实时采集并绘制 CPU 仪表盘、系统负载、内存/Swap、网卡上下行速率折线图与磁盘分区占用。
 - **快捷命令库（Snippets）**：支持单行命令与多行运维脚本分类管理，提供「仅输入不回车（便于改参）」与「输入并立即执行」双模式一键下发。
@@ -78,7 +78,7 @@
 
 | 平台 | 安装包类型 |
 | :--- | :--- |
-| **Windows (x64)** | `XiZiTerm-x.y.z-win-x64.zip`（绿色免安装版，解压即用） / **Scoop 命令行安装** |
+| **Windows (x64)** | `XiZiTerm-x.y.z-win-x64.zip`（**~3.8 MB** 绿色免安装版，内含单个独立 `XiZiTerm.exe`） / **Scoop 命令行安装** |
 | **macOS (Apple Silicon / Intel)** | `XiZiTerm-x.y.z-arm64.dmg` / `XiZiTerm-x.y.z-x64.dmg` |
 | **Linux (x64)** | `XiZiTerm-x.y.z-x86_64.AppImage` / `XiZiTerm-x.y.z-amd64.deb` |
 
@@ -104,7 +104,7 @@ scoop uninstall xiziterm
 
 ## 源码本地开发与构建
 
-环境要求：**Node.js >= 22.5**（服务端使用内置 `node:sqlite`）。
+环境要求：**Rust (stable >= 1.77)** + **Node.js >= 22.5**（服务端使用内置 `node:sqlite`）。
 
 ```bash
 # 1. 安装工作区依赖
@@ -162,7 +162,7 @@ curl http://127.0.0.1:8787/api/health
 
 - **密钥派生**：`PBKDF2-HMAC-SHA512`（`600,000` 次迭代 + `256-bit` 随机盐），主密码永不落盘、永不上传。
 - **数据加密**：每条记录独立随机 `96-bit` IV，采用 `AES-256-GCM` 认证加密并绑定记录类型/ID/版本作为 `AAD`（附加认证数据），防止密文替换或篡改。
-- **进程隔离**：渲染进程开启 `contextIsolation: true`、`nodeIntegration: false`；SSH 连接、SFTP 传输与保险库加解密全部在 Electron 主进程内完成。
+- **安全边界隔离**：前端 WebView 仅渲染 UI，主密钥内存驻留（锁定时调用 `zeroize` 清零）、`PBKDF2`/`AES-256-GCM` 加解密、SSH2 多路复用、SFTP 流式传输及操作系统级同步凭据保护（Windows DPAPI）全部在独立编译的 Rust 原生进程中完成。
 
 ---
 

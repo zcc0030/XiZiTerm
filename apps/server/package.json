@@ -1,6 +1,6 @@
 {
   "name": "@xiziterm/server",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "XiZiTerm Zero-Knowledge E2EE Cloud Sync Server",
@@ -13,7 +13,7 @@
   "dependencies": {
     "@fastify/cors": "^10.0.2",
     "@fastify/rate-limit": "^10.2.2",
-    "@xiziterm/shared": "0.1.2",
+    "@xiziterm/shared": "0.2.0",
     "fastify": "^5.2.1"
   },
   "devDependencies": {

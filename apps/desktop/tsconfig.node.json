@@ -6,8 +6,6 @@
     "noEmit": true
   },
   "include": [
-    "electron.vite.config.ts",
-    "electron/main/**/*.ts",
-    "electron/preload/**/*.ts"
+    "vite.config.ts"
   ]
 }

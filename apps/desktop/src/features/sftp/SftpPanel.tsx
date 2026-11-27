@@ -236,6 +236,41 @@ export function SftpPanel({
     return off;
   }, [sessionId]);
 
+  // Listen to native Tauri window file drag & drop events
+  React.useEffect(() => {
+    if (!window.xiziterm.sftp.onNativeFileDrop) return;
+    if (isLocal || connectionState !== 'connected') {
+      setDragOver(false);
+      return;
+    }
+
+    const off = window.xiziterm.sftp.onNativeFileDrop((ev) => {
+      if (ev.type === 'enter' || ev.type === 'over') {
+        setDragOver(true);
+      } else if (ev.type === 'leave') {
+        setDragOver(false);
+      } else if (ev.type === 'drop') {
+        setDragOver(false);
+        const paths = (ev.paths ?? []).filter(Boolean);
+        if (paths.length === 0 || !cwd) return;
+        setError(null);
+        void window.xiziterm.sftp
+          .uploadPaths(sessionId, paths, cwd)
+          .then((res) => {
+            if (!res.ok) {
+              setError(res.error ?? '拖拽上传失败');
+              return;
+            }
+            return loadDir(cwd);
+          });
+      }
+    });
+    return () => {
+      setDragOver(false);
+      off();
+    };
+  }, [connectionState, cwd, isLocal, loadDir, sessionId]);
+
   const visibleEntries = React.useMemo(() => {
     const q = filterText.trim().toLowerCase();
     return entries.filter((item) => {

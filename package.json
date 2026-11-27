@@ -1,8 +1,8 @@
 {
   "name": "xiziterm",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
-  "description": "XiZiTerm - Self-hosted Zero-Knowledge E2EE Cross-platform SSH Terminal & SFTP Manager",
+  "description": "XiZiTerm - Self-hosted Zero-Knowledge E2EE Cross-platform SSH Terminal & SFTP Manager (Tauri v2 + Rust)",
   "license": "MIT",
   "author": "zcc0030 <50785866+zcc0030@users.noreply.github.com>",
   "homepage": "https://github.com/zcc0030/XiZiTerm",
@@ -16,8 +16,10 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=@xiziterm/desktop",
+    "dev:web": "npm run dev:web --workspace=@xiziterm/desktop",
     "dev:server": "npm run dev --workspace=@xiziterm/server",
     "build": "npm run build --workspace=@xiziterm/desktop",
+    "build:web": "npm run build:web --workspace=@xiziterm/desktop",
     "build:server": "npm run build --workspace=@xiziterm/server",
     "dist": "npm run dist --workspace=@xiziterm/desktop",
     "dist:win": "npm run dist:win --workspace=@xiziterm/desktop",

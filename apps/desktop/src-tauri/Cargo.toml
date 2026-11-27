@@ -1,0 +1,61 @@
+[package]
+name = "xiziterm"
+version = "0.2.0"
+description = "XiZiTerm - Self-hosted Zero-Knowledge E2EE Cross-platform SSH Terminal & SFTP Manager"
+authors = ["zcc0030 <50785866+zcc0030@users.noreply.github.com>"]
+license = "MIT"
+edition = "2021"
+rust-version = "1.77"
+
+[build-dependencies]
+tauri-build = { version = "2.5.3", features = [] }
+
+[dependencies]
+tauri = { version = "2.12.7", features = [] }
+tauri-plugin-dialog = "2.8.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.43", features = ["full"] }
+async-trait = "0.1"
+
+# Zero-knowledge Vault Cryptography (PBKDF2-HMAC-SHA512 + AES-256-GCM)
+aes-gcm = "0.10"
+pbkdf2 = { version = "0.12", features = ["hmac"] }
+sha2 = "0.10"
+hmac = "0.12"
+rand = "0.8"
+base64 = "0.22"
+zeroize = "1.8"
+uuid = { version = "1.11", features = ["v4"] }
+
+# SSH2, Keys & SFTP (pure Rust with ring backend, zero OpenSSL / CMake / NASM)
+russh = { version = "0.65.4", default-features = false, features = ["flate2", "ring", "rsa"] }
+russh-sftp = "4.0.0"
+
+# Native Cross-Platform Local PTY
+portable-pty = "0.9.0"
+
+# Host System Metrics (CPU, Memory, Swap, Disks, Network)
+sysinfo = "0.40.4"
+
+# Cloud Sync & WebDAV Client (pure Rust rustls-tls with ring)
+reqwest = { version = "0.12.15", default-features = false, features = ["json", "rustls-tls"] }
+url = "2.5"
+urlencoding = "2.1"
+regex = "1.11"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+dirs = "5.0"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+  "Win32_Foundation",
+  "Win32_Security_Cryptography",
+  "Win32_System_Memory",
+] }
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = "thin"
+opt-level = "s"
+strip = true

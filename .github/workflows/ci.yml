@@ -13,20 +13,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Linux system dependencies for Tauri v2
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
 
+      - name: Setup Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: 'apps/desktop/src-tauri -> target'
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck all workspaces
+      - name: Typecheck all TypeScript workspaces
         run: npm run typecheck
 
-      - name: Build desktop bundle
-        run: npm run build
+      - name: Build web frontend & sync server
+        run: |
+          npm run build:web
+          npm run build:server
 
-      - name: Build sync server
-        run: npm run build:server
+      - name: Check & test Rust Tauri backend
+        working-directory: apps/desktop/src-tauri
+        run: cargo test
