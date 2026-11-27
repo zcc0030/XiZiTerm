@@ -36,6 +36,7 @@ interface SftpPanelProps {
   sessionId: string;
   hostName: string;
   connectionState: SshConnectionState;
+  isLocal?: boolean;
   onClose: () => void;
 }
 
@@ -135,6 +136,7 @@ export function SftpPanel({
   sessionId,
   hostName,
   connectionState,
+  isLocal = false,
   onClose,
 }: SftpPanelProps) {
   // Remember cwd per SSH session so switching tabs/panes preserves directory
@@ -179,7 +181,7 @@ export function SftpPanel({
 
   const loadDir = React.useCallback(
     async (targetPath?: string) => {
-      if (connectionState !== 'connected') return;
+      if (isLocal || connectionState !== 'connected') return;
       setLoading(true);
       setError(null);
       try {
@@ -196,7 +198,7 @@ export function SftpPanel({
         setLoading(false);
       }
     },
-    [connectionState, sessionId]
+    [connectionState, isLocal, sessionId]
   );
 
   // Load directory when session changes or becomes connected
@@ -206,11 +208,16 @@ export function SftpPanel({
     setFilterText('');
     setCreateMode(null);
     setRenamingEntry(null);
+    if (isLocal) {
+      setCwd('');
+      setPathInput('');
+      return;
+    }
     if (connectionState === 'connected') {
       const remembered = sessionCwdMapRef.current[sessionId];
       void loadDir(remembered);
     }
-  }, [sessionId, connectionState, loadDir]);
+  }, [sessionId, connectionState, isLocal, loadDir]);
 
   // Listen to SFTP transfer progress events
   React.useEffect(() => {
@@ -464,7 +471,7 @@ export function SftpPanel({
           <button
             type="button"
             onClick={() => void loadDir('~')}
-            disabled={connectionState !== 'connected'}
+            disabled={isLocal || connectionState !== 'connected'}
             title="主目录 (~)"
             className="rounded p-1 text-theme-muted hover:bg-theme-hover hover:text-theme-primary disabled:opacity-35"
           >
@@ -473,7 +480,7 @@ export function SftpPanel({
           <button
             type="button"
             onClick={() => void loadDir(cwd || undefined)}
-            disabled={connectionState !== 'connected' || loading}
+            disabled={isLocal || connectionState !== 'connected' || loading}
             title="刷新当前目录"
             className="rounded p-1 text-theme-muted hover:bg-theme-hover hover:text-theme-primary disabled:opacity-35"
           >
@@ -497,7 +504,7 @@ export function SftpPanel({
           ) : (
             <div
               onClick={() => {
-                if (connectionState === 'connected') {
+                if (!isLocal && connectionState === 'connected') {
                   setPathInput(cwd);
                   setEditingPath(true);
                 }
@@ -524,7 +531,9 @@ export function SftpPanel({
                   </React.Fragment>
                 ))
               ) : (
-                <span className="text-theme-muted">等待连接...</span>
+                <span className="text-theme-muted">
+                  {isLocal ? '本机终端会话（不使用远程 SFTP）' : '等待连接...'}
+                </span>
               )}
             </div>
           )}
@@ -655,7 +664,15 @@ export function SftpPanel({
 
       {/* Main Content Area */}
       <div className="min-h-0 flex-1 overflow-y-auto bg-theme-base">
-        {connectionState !== 'connected' ? (
+        {isLocal ? (
+          <div className="flex h-full flex-col items-center justify-center gap-1.5 px-4 text-center text-xs text-theme-muted">
+            <Folder className="h-6 w-6 opacity-45" />
+            <span>当前激活窗格为本机终端，无需远程 SFTP 传输通道</span>
+            <span className="text-[11px] opacity-80">
+              切换到任意远程 SSH 标签页或分屏后，此处会自动加载对应的远程文件目录
+            </span>
+          </div>
+        ) : connectionState !== 'connected' ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-xs text-theme-muted">
             <Loader2
               className={`h-5 w-5 ${

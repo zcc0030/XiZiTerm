@@ -1,3 +1,5 @@
+import { promises as fsp } from 'fs';
+import os from 'os';
 import type { Client } from 'ssh2';
 import type {
   DiskPartitionUsage,
@@ -6,6 +8,7 @@ import type {
   NetInterfaceRate,
 } from '@xiziterm/shared';
 import { sshService } from './ssh.service';
+import { localPtyService } from './local-pty.service';
 
 const PROBE_COMMAND = [
   'printf "===CPU===\\n"',
@@ -64,6 +67,7 @@ interface NetRawMap {
 
 interface SessionMonitor {
   sessionId: string;
+  isLocal: boolean;
   intervalMs: number;
   timer: NodeJS.Timeout | null;
   stopped: boolean;
@@ -361,13 +365,15 @@ export class MonitorService {
       return;
     }
 
-    const client = sshService.getClient(sessionId);
-    if (!client) {
-      throw new Error('当前 SSH 会话未连接，无法启动实时监控');
+    const isLocal = localPtyService.hasSession(sessionId);
+    const client = isLocal ? null : sshService.getClient(sessionId);
+    if (!isLocal && !client) {
+      throw new Error('当前终端会话未连接，无法启动实时监控');
     }
 
     const monitor: SessionMonitor = {
       sessionId,
+      isLocal,
       intervalMs: safeInterval,
       timer: null,
       stopped: false,
@@ -378,9 +384,15 @@ export class MonitorService {
     };
     this.monitors.set(sessionId, monitor);
 
-    client.once('close', () => {
-      this.stop(sessionId);
-    });
+    if (isLocal) {
+      localPtyService.onSessionClosed(sessionId, () => {
+        this.stop(sessionId);
+      });
+    } else if (client) {
+      client.once('close', () => {
+        this.stop(sessionId);
+      });
+    }
 
     void this.pollOnce(monitor);
   }
@@ -409,8 +421,126 @@ export class MonitorService {
     }, delayMs);
   }
 
+  private async pollLocalOnce(monitor: SessionMonitor): Promise<void> {
+    if (!localPtyService.hasSession(monitor.sessionId)) {
+      this.stop(monitor.sessionId);
+      return;
+    }
+
+    monitor.inFlight = true;
+    try {
+      const now = Date.now();
+      const cpus = os.cpus();
+      let total = 0;
+      let idle = 0;
+      for (const c of cpus) {
+        const t = c.times;
+        total += t.user + t.nice + t.sys + t.idle + t.irq;
+        idle += t.idle;
+      }
+
+      let cpuUsagePercent = 0;
+      if (monitor.prevCpu) {
+        const dTotal = total - monitor.prevCpu.total;
+        const dIdle = idle - monitor.prevCpu.idle;
+        if (dTotal > 0) {
+          cpuUsagePercent = Math.min(
+            100,
+            Math.max(0, ((dTotal - dIdle) / dTotal) * 100)
+          );
+        }
+      }
+      monitor.prevCpu = { total, idle };
+
+      const memTotalBytes = os.totalmem();
+      const memAvailableBytes = os.freemem();
+      const memUsedBytes = Math.max(0, memTotalBytes - memAvailableBytes);
+      const memUsagePercent =
+        memTotalBytes > 0
+          ? Math.min(100, Math.max(0, (memUsedBytes / memTotalBytes) * 100))
+          : 0;
+
+      const disks: DiskPartitionUsage[] = [];
+      const candidateRoots =
+        process.platform === 'win32'
+          ? ['C:\\', 'D:\\', 'E:\\']
+          : ['/'];
+      for (const rootPath of candidateRoots) {
+        try {
+          const st = await fsp.statfs(rootPath);
+          const totalBytes = st.blocks * st.bsize;
+          const availBytes = st.bavail * st.bsize;
+          if (totalBytes > 0) {
+            const usedBytes = Math.max(0, totalBytes - availBytes);
+            disks.push({
+              filesystem: process.platform === 'win32' ? 'NTFS' : 'LocalFS',
+              mount: rootPath,
+              totalBytes,
+              usedBytes,
+              availableBytes: availBytes,
+              usedPercent: Math.min(
+                100,
+                Math.max(0, (usedBytes / totalBytes) * 100)
+              ),
+            });
+          }
+        } catch {
+          // ignore non-existent drives
+        }
+      }
+
+      const rawLoad = os.loadavg();
+      const loadAverage: [number, number, number] = [
+        rawLoad[0] ?? 0,
+        rawLoad[1] ?? 0,
+        rawLoad[2] ?? 0,
+      ];
+
+      const osPrettyName =
+        process.platform === 'win32'
+          ? `Windows (${os.release()})`
+          : process.platform === 'darwin'
+            ? `macOS (${os.release()})`
+            : `${os.type()} (${os.release()})`;
+
+      monitor.sampleCount += 1;
+      const snapshot: HostMetricsSnapshot = {
+        sessionId: monitor.sessionId,
+        timestamp: now,
+        hostname: os.hostname(),
+        osPrettyName,
+        kernel: `${os.platform()}-${os.arch()}`,
+        uptimeSeconds: Math.floor(os.uptime()),
+        cpuCores: Math.max(1, cpus.length),
+        cpuUsagePercent,
+        loadAverage,
+        memTotalBytes,
+        memUsedBytes,
+        memAvailableBytes,
+        memUsagePercent,
+        swapTotalBytes: 0,
+        swapUsedBytes: 0,
+        swapUsagePercent: 0,
+        disks,
+        netRxBytesPerSec: 0,
+        netTxBytesPerSec: 0,
+        netInterfaces: [],
+      };
+
+      this.sampleCallback?.(snapshot);
+      const nextDelay = monitor.sampleCount === 1 ? 650 : monitor.intervalMs;
+      this.scheduleNext(monitor, nextDelay);
+    } finally {
+      monitor.inFlight = false;
+    }
+  }
+
   private async pollOnce(monitor: SessionMonitor): Promise<void> {
     if (monitor.stopped || monitor.inFlight) return;
+    if (monitor.isLocal) {
+      await this.pollLocalOnce(monitor);
+      return;
+    }
 
     const client = sshService.getClient(monitor.sessionId);
     if (!client) {

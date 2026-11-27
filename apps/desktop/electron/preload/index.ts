@@ -42,6 +42,8 @@ const api: XiZiTermApi = {
     connect: (req) => ipcRenderer.invoke(IPC_CHANNELS.SSH_CONNECT, req),
     testConnection: (req) =>
       ipcRenderer.invoke(IPC_CHANNELS.SSH_TEST_CONNECTION, req),
+    listLocalShells: (refresh) =>
+      ipcRenderer.invoke(IPC_CHANNELS.LOCAL_LIST_SHELLS, refresh),
     write: (sessionId, data) =>
       ipcRenderer.send(IPC_CHANNELS.SSH_WRITE, { sessionId, data }),
     resize: (payload) => ipcRenderer.send(IPC_CHANNELS.SSH_RESIZE, payload),

@@ -19,7 +19,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import type { SplitDirection } from '@xiziterm/shared';
+import { LOCAL_HOST_ID, type SplitDirection } from '@xiziterm/shared';
 import { Button } from '@/components/ui/button';
 import { useVaultStore } from '@/stores/vault.store';
 import { useTerminalStore } from '@/stores/terminal.store';
@@ -33,6 +33,7 @@ interface XTermPaneProps {
   hostId: string;
   hostName: string;
   hostAddress: string;
+  shellId?: string;
   isActiveTab: boolean;
   isActivePane: boolean;
   canClosePane: boolean;
@@ -47,6 +48,7 @@ export function XTermPane({
   hostId,
   hostName,
   hostAddress,
+  shellId,
   isActiveTab,
   isActivePane,
   canClosePane,
@@ -54,6 +56,7 @@ export function XTermPane({
   onSplit,
   onClose,
 }: XTermPaneProps) {
+  const isLocal = hostId === LOCAL_HOST_ID;
   const paneRootRef = React.useRef<HTMLDivElement | null>(null);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const contextMenuRef = React.useRef<HTMLDivElement | null>(null);
@@ -96,35 +99,47 @@ export function XTermPane({
     const cols = term.cols || 80;
     const rows = term.rows || 24;
 
-    setSessionStatus(sessionId, 'connecting', `正在连接 ${hostAddress} ...`);
-    term.writeln(
-      `\x1b[36m[XiZiTerm]\x1b[0m 正在连接 \x1b[1m${hostAddress}\x1b[0m ...`
-    );
+    if (isLocal) {
+      setSessionStatus(sessionId, 'connecting', `正在启动 ${hostName} ...`);
+      term.writeln(
+        `\x1b[36m[XiZiTerm]\x1b[0m 正在启动 \x1b[1m${hostName}\x1b[0m (\x1b[2m${hostAddress}\x1b[0m) ...`
+      );
+    } else {
+      setSessionStatus(sessionId, 'connecting', `正在连接 ${hostAddress} ...`);
+      term.writeln(
+        `\x1b[36m[XiZiTerm]\x1b[0m 正在连接 \x1b[1m${hostAddress}\x1b[0m ...`
+      );
+    }
 
     const result = await window.xiziterm.ssh.connect({
       sessionId,
       hostId,
       cols,
       rows,
+      shellId,
     });
 
     if (!result.ok) {
-      const msg = result.error ?? 'SSH 连接失败';
+      const msg = result.error ?? (isLocal ? '启动本机终端失败' : 'SSH 连接失败');
       setSessionStatus(sessionId, 'error', msg);
-      term.writeln(`\r\n\x1b[31m[连接失败]\x1b[0m ${msg}`);
+      term.writeln(`\r\n\x1b[31m[${isLocal ? '启动失败' : '连接失败'}]\x1b[0m ${msg}`);
     }
-  }, [hostAddress, hostId, sessionId, setSessionStatus]);
+  }, [hostAddress, hostId, hostName, isLocal, sessionId, setSessionStatus, shellId]);
 
   const handleReconnect = React.useCallback(async () => {
     setReconnecting(true);
     try {
-      termRef.current?.writeln('\r\n\x1b[33m[XiZiTerm]\x1b[0m 正在尝试重新连接...');
+      termRef.current?.writeln(
+        isLocal
+          ? '\r\n\x1b[33m[XiZiTerm]\x1b[0m 正在重新启动本机终端...'
+          : '\r\n\x1b[33m[XiZiTerm]\x1b[0m 正在尝试重新连接...'
+      );
       await connectSession();
       termRef.current?.focus();
     } finally {
       setReconnecting(false);
     }
-  }, [connectSession]);
+  }, [connectSession, isLocal]);
 
   // Initialize xterm.js and subscribe to SSH IPC streams
   React.useEffect(() => {
@@ -521,7 +536,7 @@ export function XTermPane({
               e.stopPropagation();
               void handleReconnect();
             }}
-            title="重新连接"
+            title={isLocal ? '重启本机终端' : '重新连接'}
             className="rounded p-1 text-theme-muted hover:bg-theme-hover hover:text-theme-online"
           >
             <RefreshCw
@@ -550,7 +565,10 @@ export function XTermPane({
           <div className="flex min-w-0 items-center gap-2">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-theme-warn" />
             <span className="truncate">
-              {sessionStatus?.message || 'SSH 会话已断开，是否立即重新连接？'}
+              {sessionStatus?.message ||
+                (isLocal
+                  ? '本机终端进程已结束，是否重新启动？'
+                  : 'SSH 会话已断开，是否立即重新连接？')}
             </span>
           </div>
           <Button
@@ -565,7 +583,7 @@ export function XTermPane({
             ) : (
               <RefreshCw className="h-3 w-3" />
             )}
-            一键重连
+            {isLocal ? '重新启动' : '一键重连'}
           </Button>
         </div>
       )}

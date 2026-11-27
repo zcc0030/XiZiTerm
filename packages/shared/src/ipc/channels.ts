@@ -10,6 +10,7 @@ import type {
   VaultStatus,
 } from '../types/vault.js';
 import type {
+  LocalShellProfile,
   SshConnectRequest,
   SshConnectResult,
   SshDataEvent,
@@ -58,6 +59,7 @@ export const IPC_CHANNELS = {
   DIALOG_OPEN_KEY_FILE: 'dialog:open-key-file',
   SSH_CONNECT: 'ssh:connect',
   SSH_TEST_CONNECTION: 'ssh:test-connection',
+  LOCAL_LIST_SHELLS: 'local:list-shells',
   SSH_WRITE: 'ssh:write',
   SSH_RESIZE: 'ssh:resize',
   SSH_DISCONNECT: 'ssh:disconnect',
@@ -136,6 +138,7 @@ export interface XiZiTermApi {
     testConnection: (
       req: SshTestConnectionRequest
     ) => Promise<SshTestConnectionResult>;
+    listLocalShells: (refresh?: boolean) => Promise<LocalShellProfile[]>;
     write: (sessionId: string, data: string) => void;
     resize: (payload: SshResizePayload) => void;
     disconnect: (sessionId: string) => Promise<void>;

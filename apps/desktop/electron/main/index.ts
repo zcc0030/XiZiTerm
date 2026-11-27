@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, shell } from 'electron';
 import path from 'path';
 import { registerAllIpc } from './ipc';
 import { sshService } from './services/ssh.service';
+import { localPtyService } from './services/local-pty.service';
 import { vaultService } from './services/vault.service';
 import { monitorService } from './services/monitor.service';
 
@@ -73,6 +74,7 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   monitorService.stopAll();
+  localPtyService.disconnectAll();
   sshService.disconnectAll();
   if (process.platform !== 'darwin') {
     app.quit();
@@ -81,6 +83,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   monitorService.stopAll();
+  localPtyService.disconnectAll();
   sshService.disconnectAll();
   vaultService.lock();
 });

@@ -1,5 +1,7 @@
 import * as React from 'react';
 import {
+  Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Cloud,
@@ -8,6 +10,7 @@ import {
   Folder,
   FolderPlus,
   KeyRound,
+  Laptop,
   Loader2,
   Lock,
   Pencil,
@@ -70,15 +73,61 @@ export function HostSidebar({
   const lockVault = useVaultStore((s) => s.lockVault);
 
   const openHostTab = useTerminalStore((s) => s.openHostTab);
+  const openLocalTab = useTerminalStore((s) => s.openLocalTab);
+  const localShells = useTerminalStore((s) => s.localShells);
+  const preferredShellId = useTerminalStore((s) => s.preferredShellId);
+  const loadLocalShells = useTerminalStore((s) => s.loadLocalShells);
+  const setPreferredShellId = useTerminalStore((s) => s.setPreferredShellId);
   const activeTabId = useTerminalStore((s) => s.activeTabId);
   const tabs = useTerminalStore((s) => s.tabs);
   const splitPane = useTerminalStore((s) => s.splitPane);
+  const splitLocalPane = useTerminalStore((s) => s.splitLocalPane);
   const resetAllTabs = useTerminalStore((s) => s.resetAll);
 
   const [creatingGroup, setCreatingGroup] = React.useState(false);
   const [newGroupName, setNewGroupName] = React.useState('');
   const [renamingGroup, setRenamingGroup] = React.useState<HostGroup | null>(null);
   const [renameText, setRenameText] = React.useState('');
+  const [shellMenuOpen, setShellMenuOpen] = React.useState(false);
+  const [refreshingShells, setRefreshingShells] = React.useState(false);
+
+  React.useEffect(() => {
+    void loadLocalShells();
+  }, [loadLocalShells]);
+
+  const defaultLocalShell = React.useMemo(() => {
+    if (preferredShellId) {
+      const found = localShells.find((s) => s.id === preferredShellId);
+      if (found) return found;
+    }
+    return localShells[0];
+  }, [localShells, preferredShellId]);
+
+  const showLocalHost = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    if (
+      '本机终端 本地终端 local localhost terminal shell'.includes(q)
+    ) {
+      return true;
+    }
+    return localShells.some(
+      (s) =>
+        s.label.toLowerCase().includes(q) ||
+        s.command.toLowerCase().includes(q) ||
+        s.id.toLowerCase().includes(q)
+    );
+  }, [localShells, searchQuery]);
+
+  const handleRefreshShells = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRefreshingShells(true);
+    try {
+      await loadLocalShells(true);
+    } finally {
+      setRefreshingShells(false);
+    }
+  };
 
   const activeTab = tabs.find((t) => t.tabId === activeTabId) ?? null;
 
@@ -181,6 +230,14 @@ export function HostSidebar({
             className="flex h-8 w-8 items-center justify-center rounded-lg bg-theme-accent-soft text-theme-accent hover:opacity-90"
           >
             <ChevronRight className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => openLocalTab(defaultLocalShell)}
+            title={`打开本机终端 (${defaultLocalShell?.label ?? '默认 Shell'})`}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-theme-online/35 bg-theme-online-soft text-theme-online hover:opacity-90"
+          >
+            <Laptop className="h-4 w-4" />
           </button>
           <button
             type="button"
@@ -431,8 +488,177 @@ export function HostSidebar({
 
       {/* Host List */}
       <div className="flex-1 overflow-y-auto px-2.5 py-2">
+        {/* Built-in Default Local Host Card */}
+        {showLocalHost && (
+          <div className="mb-3">
+            <div className="mb-1.5 px-1.5 text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
+              默认主机
+            </div>
+            <div
+              onDoubleClick={() => openLocalTab(defaultLocalShell)}
+              className="group cursor-pointer rounded-lg border border-theme-online/35 bg-theme-elevated/80 p-2.5 transition-all hover:border-theme-online/65 hover:bg-theme-elevated"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <Laptop className="h-3.5 w-3.5 shrink-0 text-theme-online" />
+                    <span className="truncate text-xs font-semibold text-theme-primary">
+                      本机终端
+                    </span>
+                    <span className="shrink-0 rounded border border-theme-online/35 bg-theme-online-soft px-1.5 py-0.5 text-[10px] font-medium leading-none text-theme-online">
+                      内置
+                    </span>
+                  </div>
+                  <div className="mt-1 truncate font-mono text-[11px] text-theme-muted">
+                    {defaultLocalShell
+                      ? defaultLocalShell.label
+                      : '自动检测系统终端...'}
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-0.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openLocalTab(defaultLocalShell);
+                    }}
+                    title="在新标签页启动默认本机终端"
+                    className="rounded p-1 text-theme-online hover:bg-theme-online-soft"
+                  >
+                    <Play className="h-3.5 w-3.5" />
+                  </button>
+                  {activeTab && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        splitLocalPane(
+                          activeTab.tabId,
+                          activeTab.activePaneId,
+                          'horizontal',
+                          defaultLocalShell
+                        );
+                      }}
+                      title="在当前标签页右侧分屏启动本机终端"
+                      className="rounded p-1 text-theme-muted hover:bg-theme-hover hover:text-theme-online"
+                    >
+                      <Columns2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShellMenuOpen((v) => !v);
+                    }}
+                    title="展开/切换本机各类终端 (PowerShell / CMD / Bash / WSL / Zsh...)"
+                    className={`rounded p-1 transition-colors ${
+                      shellMenuOpen
+                        ? 'bg-theme-accent-soft text-theme-accent'
+                        : 'text-theme-muted hover:bg-theme-hover hover:text-theme-primary'
+                    }`}
+                  >
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform ${
+                        shellMenuOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {shellMenuOpen && (
+                <div
+                  onDoubleClick={(e) => e.stopPropagation()}
+                  className="mt-2.5 space-y-1 border-t border-theme-border/70 pt-2"
+                >
+                  <div className="flex items-center justify-between px-1 text-[10px] text-theme-muted">
+                    <span>检测到可用终端 ({localShells.length})</span>
+                    <button
+                      type="button"
+                      onClick={(e) => void handleRefreshShells(e)}
+                      title="重新扫描系统已安装的终端"
+                      className="inline-flex items-center gap-1 rounded px-1 py-0.5 hover:bg-theme-hover hover:text-theme-primary"
+                    >
+                      <RefreshCw
+                        className={`h-2.5 w-2.5 ${
+                          refreshingShells ? 'animate-spin text-theme-accent' : ''
+                        }`}
+                      />
+                      刷新
+                    </button>
+                  </div>
+
+                  {localShells.map((shell) => {
+                    const isPreferred = defaultLocalShell?.id === shell.id;
+                    return (
+                      <div
+                        key={shell.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openLocalTab(shell);
+                        }}
+                        title={`点击打开 ${shell.label}\n路径: ${shell.command}`}
+                        className="group/shell flex items-center justify-between gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-theme-hover"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate font-medium text-theme-primary">
+                              {shell.label}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-1">
+                          {activeTab && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                splitLocalPane(
+                                  activeTab.tabId,
+                                  activeTab.activePaneId,
+                                  'horizontal',
+                                  shell
+                                );
+                              }}
+                              title="右侧分屏打开此终端"
+                              className="hidden rounded p-0.5 text-theme-muted hover:text-theme-online group-hover/shell:inline-flex"
+                            >
+                              <Columns2 className="h-3 w-3" />
+                            </button>
+                          )}
+                          {isPreferred ? (
+                            <span className="inline-flex items-center gap-0.5 rounded bg-theme-online-soft px-1.5 py-0.5 text-[10px] text-theme-online">
+                              <Check className="h-2.5 w-2.5" />
+                              默认
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreferredShellId(shell.id);
+                              }}
+                              title="设为双击默认启动的终端"
+                              className="hidden rounded border border-theme-border bg-theme-base px-1.5 py-0.5 text-[10px] text-theme-muted hover:border-theme-accent/60 hover:text-theme-accent group-hover/shell:inline-flex"
+                            >
+                              设为默认
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="mb-1.5 px-1.5 text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
-          主机列表 ({filteredHosts.length})
+          远程 SSH 主机 ({filteredHosts.length})
         </div>
 
         {filteredHosts.length === 0 ? (

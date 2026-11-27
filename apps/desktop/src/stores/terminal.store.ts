@@ -1,11 +1,42 @@
 import { create } from 'zustand';
-import type {
-  HostConfig,
-  SplitDirection,
-  SshConnectionState,
-  TerminalSplitNode,
-  TerminalTab,
+import {
+  LOCAL_HOST_ID,
+  type HostConfig,
+  type LocalShellProfile,
+  type SplitDirection,
+  type SshConnectionState,
+  type TerminalSplitNode,
+  type TerminalTab,
 } from '@xiziterm/shared';
+
+const PREFERRED_LOCAL_SHELL_KEY = 'xiziterm.preferredLocalShell';
+
+function loadPreferredShellId(): string | null {
+  try {
+    return window.localStorage.getItem(PREFERRED_LOCAL_SHELL_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function persistPreferredShellId(shellId: string): void {
+  try {
+    window.localStorage.setItem(PREFERRED_LOCAL_SHELL_KEY, shellId);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function resolveDefaultShell(
+  shells: LocalShellProfile[],
+  preferredId: string | null
+): LocalShellProfile | undefined {
+  if (preferredId) {
+    const found = shells.find((s) => s.id === preferredId);
+    if (found) return found;
+  }
+  return shells[0];
+}
 
 export interface SessionStatusInfo {
   state: SshConnectionState;
@@ -16,8 +47,13 @@ interface TerminalStoreState {
   tabs: TerminalTab[];
   activeTabId: string | null;
   sessionStatuses: Record<string, SessionStatusInfo>;
+  localShells: LocalShellProfile[];
+  preferredShellId: string | null;
 
+  loadLocalShells: (refresh?: boolean) => Promise<LocalShellProfile[]>;
+  setPreferredShellId: (shellId: string) => void;
   openHostTab: (host: HostConfig) => void;
+  openLocalTab: (shell?: LocalShellProfile) => void;
   setActiveTab: (tabId: string) => void;
   setActivePane: (tabId: string, paneId: string) => void;
   splitPane: (
@@ -25,6 +61,12 @@ interface TerminalStoreState {
     targetPaneId: string,
     direction: SplitDirection,
     host: HostConfig
+  ) => void;
+  splitLocalPane: (
+    tabId: string,
+    targetPaneId: string,
+    direction: SplitDirection,
+    shell?: LocalShellProfile
   ) => void;
   updateSplitRatio: (tabId: string, splitId: string, ratio: number) => void;
   closePane: (tabId: string, paneId: string) => void;
@@ -148,6 +190,23 @@ export const useTerminalStore = create<TerminalStoreState>((set, get) => ({
   tabs: [],
   activeTabId: null,
   sessionStatuses: {},
+  localShells: [],
+  preferredShellId: loadPreferredShellId(),
+
+  loadLocalShells: async (refresh = false) => {
+    try {
+      const list = await window.xiziterm.ssh.listLocalShells(refresh);
+      set({ localShells: list });
+      return list;
+    } catch {
+      return get().localShells;
+    }
+  },
+
+  setPreferredShellId: (shellId) => {
+    persistPreferredShellId(shellId);
+    set({ preferredShellId: shellId });
+  },
 
   openHostTab: (host) => {
     const tabId = makeId('tab');
@@ -175,6 +234,41 @@ export const useTerminalStore = create<TerminalStoreState>((set, get) => ({
       sessionStatuses: {
         ...state.sessionStatuses,
         [sessionId]: { state: 'connecting', message: '正在建立 SSH 连接...' },
+      },
+    }));
+  },
+
+  openLocalTab: (shell) => {
+    const chosen =
+      shell ?? resolveDefaultShell(get().localShells, get().preferredShellId);
+    const tabId = makeId('tab');
+    const paneId = makeId('pane');
+    const sessionId = makeId('local');
+    const title = chosen ? `本机 · ${chosen.label}` : '本机终端';
+    const hostAddress = chosen?.command ?? 'Local PTY';
+
+    const newTab: TerminalTab = {
+      tabId,
+      title,
+      hostId: LOCAL_HOST_ID,
+      activePaneId: paneId,
+      root: {
+        type: 'pane',
+        paneId,
+        sessionId,
+        hostId: LOCAL_HOST_ID,
+        hostName: title,
+        hostAddress,
+        shellId: chosen?.id,
+      },
+    };
+
+    set((state) => ({
+      tabs: [...state.tabs, newTab],
+      activeTabId: tabId,
+      sessionStatuses: {
+        ...state.sessionStatuses,
+        [sessionId]: { state: 'connecting', message: '正在启动本机终端...' },
       },
     }));
   },
@@ -212,6 +306,40 @@ export const useTerminalStore = create<TerminalStoreState>((set, get) => ({
       sessionStatuses: {
         ...state.sessionStatuses,
         [newSessionId]: { state: 'connecting', message: '正在建立 SSH 连接...' },
+      },
+    }));
+  },
+
+  splitLocalPane: (tabId, targetPaneId, direction, shell) => {
+    const chosen =
+      shell ?? resolveDefaultShell(get().localShells, get().preferredShellId);
+    const newPaneId = makeId('pane');
+    const newSessionId = makeId('local');
+    const title = chosen ? `本机 · ${chosen.label}` : '本机终端';
+    const hostAddress = chosen?.command ?? 'Local PTY';
+
+    const newPane: Extract<TerminalSplitNode, { type: 'pane' }> = {
+      type: 'pane',
+      paneId: newPaneId,
+      sessionId: newSessionId,
+      hostId: LOCAL_HOST_ID,
+      hostName: title,
+      hostAddress,
+      shellId: chosen?.id,
+    };
+
+    set((state) => ({
+      tabs: state.tabs.map((tab) => {
+        if (tab.tabId !== tabId) return tab;
+        return {
+          ...tab,
+          root: replacePaneWithSplit(tab.root, targetPaneId, direction, newPane),
+          activePaneId: newPaneId,
+        };
+      }),
+      sessionStatuses: {
+        ...state.sessionStatuses,
+        [newSessionId]: { state: 'connecting', message: '正在启动本机终端...' },
       },
     }));
   },

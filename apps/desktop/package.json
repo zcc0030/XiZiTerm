@@ -1,7 +1,7 @@
 {
   "name": "@xiziterm/desktop",
   "productName": "XiZiTerm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "license": "MIT",
   "author": "zcc0030 <50785866+zcc0030@users.noreply.github.com>",
@@ -21,6 +21,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web"
   },
   "dependencies": {
+    "@lydell/node-pty": "1.2.0-beta.18",
     "ssh2": "^1.16.0"
   },
   "devDependencies": {
@@ -29,7 +30,7 @@
     "@types/react-dom": "^18.3.1",
     "@types/ssh2": "^1.15.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "@xiziterm/shared": "0.1.1",
+    "@xiziterm/shared": "0.1.2",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-search": "^0.15.0",
     "@xterm/addon-web-links": "^0.11.0",

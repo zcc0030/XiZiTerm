@@ -1,9 +1,11 @@
 import * as React from 'react';
 import {
   Activity,
+  ChevronDown,
   Code2,
   Columns2,
   FolderOpen,
+  Laptop,
   Minus,
   Plus,
   Rows2,
@@ -11,7 +13,7 @@ import {
   Terminal,
   X,
 } from 'lucide-react';
-import type { SplitDirection } from '@xiziterm/shared';
+import { LOCAL_HOST_ID, type SplitDirection } from '@xiziterm/shared';
 import { Button } from '@/components/ui/button';
 import { useVaultStore } from '@/stores/vault.store';
 import { findPaneById, useTerminalStore } from '@/stores/terminal.store';
@@ -74,13 +76,49 @@ export function TerminalWorkspace({ onAddHost }: TerminalWorkspaceProps) {
   const tabs = useTerminalStore((s) => s.tabs);
   const activeTabId = useTerminalStore((s) => s.activeTabId);
   const sessionStatuses = useTerminalStore((s) => s.sessionStatuses);
+  const localShells = useTerminalStore((s) => s.localShells);
+  const preferredShellId = useTerminalStore((s) => s.preferredShellId);
+  const loadLocalShells = useTerminalStore((s) => s.loadLocalShells);
   const setActiveTab = useTerminalStore((s) => s.setActiveTab);
   const setActivePane = useTerminalStore((s) => s.setActivePane);
   const openHostTab = useTerminalStore((s) => s.openHostTab);
+  const openLocalTab = useTerminalStore((s) => s.openLocalTab);
   const splitPane = useTerminalStore((s) => s.splitPane);
+  const splitLocalPane = useTerminalStore((s) => s.splitLocalPane);
   const updateSplitRatio = useTerminalStore((s) => s.updateSplitRatio);
   const closePane = useTerminalStore((s) => s.closePane);
   const closeTab = useTerminalStore((s) => s.closeTab);
+
+  const [newTabMenuOpen, setNewTabMenuOpen] = React.useState(false);
+  const newTabMenuRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    if (localShells.length === 0) {
+      void loadLocalShells();
+    }
+  }, [localShells.length, loadLocalShells]);
+
+  React.useEffect(() => {
+    if (!newTabMenuOpen) return;
+    const onPointerDown = (ev: MouseEvent) => {
+      if (
+        newTabMenuRef.current &&
+        !newTabMenuRef.current.contains(ev.target as Node)
+      ) {
+        setNewTabMenuOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', onPointerDown);
+    return () => window.removeEventListener('mousedown', onPointerDown);
+  }, [newTabMenuOpen]);
+
+  const defaultLocalShell = React.useMemo(() => {
+    if (preferredShellId) {
+      const found = localShells.find((s) => s.id === preferredShellId);
+      if (found) return found;
+    }
+    return localShells[0];
+  }, [localShells, preferredShellId]);
 
   const [sftpOpen, setSftpOpen] = React.useState(false);
   const [sftpHeight, setSftpHeight] = React.useState<number>(() =>
@@ -180,6 +218,15 @@ export function TerminalWorkspace({ onAddHost }: TerminalWorkspaceProps) {
     hostId: string,
     direction: SplitDirection
   ) => {
+    if (hostId === LOCAL_HOST_ID) {
+      const tab = tabs.find((t) => t.tabId === tabId);
+      const sourcePane = tab ? findPaneById(tab.root, paneId) : null;
+      const shell = sourcePane?.shellId
+        ? localShells.find((s) => s.id === sourcePane.shellId)
+        : undefined;
+      splitLocalPane(tabId, paneId, direction, shell);
+      return;
+    }
     const host = hosts.find((h) => h.id === hostId);
     if (!host) return;
     splitPane(tabId, paneId, direction, host);
@@ -201,7 +248,7 @@ export function TerminalWorkspace({ onAddHost }: TerminalWorkspaceProps) {
 
   if (tabs.length === 0) {
     return (
-      <div className="relative flex flex-1 flex-col items-center justify-center bg-theme-base p-8 text-center">
+      <div className="relative flex flex-1 flex-col items-center justify-center overflow-y-auto bg-theme-base p-8 text-center">
         <div className="absolute right-4 top-3">
           <ThemeDropdown />
         </div>
@@ -212,13 +259,54 @@ export function TerminalWorkspace({ onAddHost }: TerminalWorkspaceProps) {
           欢迎使用 XiZiTerm
         </h2>
         <p className="mt-1.5 max-w-md text-xs leading-relaxed text-theme-muted">
-          双击左侧任意 SSH 主机即可建立加密终端会话。支持多标签页、左右/上下分屏、终端内搜索与断线重连。
+          内置跨平台本地终端与零知识加密远程 SSH 会话。支持多标签页、左右/上下分屏、座舱监控与终端内搜索。
         </p>
 
+        {/* Built-in Local Shells Quick Launch */}
+        <div className="mt-6 w-full max-w-lg">
+          <div className="mb-2 flex items-center justify-between text-left text-[11px] font-medium uppercase tracking-wider text-theme-muted">
+            <span>本机终端 · 免配置即开即用</span>
+            <span className="font-mono text-[10px] text-theme-online">
+              Local PTY
+            </span>
+          </div>
+          {localShells.length > 0 ? (
+            <div className="grid grid-cols-2 gap-2">
+              {localShells.slice(0, 6).map((shell) => (
+                <button
+                  key={shell.id}
+                  type="button"
+                  onClick={() => openLocalTab(shell)}
+                  className="flex items-center gap-2.5 rounded-lg border border-theme-online/35 bg-theme-elevated/75 p-2.5 text-left transition-colors hover:border-theme-online/70 hover:bg-theme-elevated"
+                >
+                  <Laptop className="h-4 w-4 shrink-0 text-theme-online" />
+                  <div className="min-w-0">
+                    <div className="truncate text-xs font-medium text-theme-primary">
+                      {shell.label}
+                    </div>
+                    <div className="truncate font-mono text-[10px] text-theme-muted">
+                      {shell.command}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Button
+              variant="secondary"
+              onClick={() => openLocalTab()}
+              className="w-full"
+            >
+              <Laptop className="h-4 w-4 text-theme-online" />
+              打开本机终端
+            </Button>
+          )}
+        </div>
+
         {hosts.length > 0 ? (
-          <div className="mt-6 w-full max-w-lg">
+          <div className="mt-5 w-full max-w-lg">
             <div className="mb-2 text-left text-[11px] font-medium uppercase tracking-wider text-theme-muted">
-              快速连接
+              远程 SSH 快速连接
             </div>
             <div className="grid grid-cols-2 gap-2">
               {hosts.slice(0, 6).map((host) => (
@@ -242,9 +330,9 @@ export function TerminalWorkspace({ onAddHost }: TerminalWorkspaceProps) {
             </div>
           </div>
         ) : (
-          <Button onClick={onAddHost} className="mt-6">
+          <Button onClick={onAddHost} className="mt-5">
             <Plus className="h-4 w-4" />
-            添加第一台 SSH 主机
+            添加第一台远程 SSH 主机
           </Button>
         )}
 
@@ -332,6 +420,58 @@ export function TerminalWorkspace({ onAddHost }: TerminalWorkspaceProps) {
 
         {/* Workspace Toolbar */}
         <div className="flex shrink-0 items-center gap-1 border-l border-theme-border pl-2">
+          {/* Quick Local Terminal Split-Button + Dropdown */}
+          <div ref={newTabMenuRef} className="relative flex items-center">
+            <button
+              type="button"
+              onClick={() => openLocalTab(defaultLocalShell)}
+              title={`新建本机终端标签页 (${defaultLocalShell?.label ?? '默认 Shell'})`}
+              className="flex h-7 items-center gap-1 rounded-l border border-theme-border bg-theme-elevated/70 px-2 text-xs font-medium text-theme-primary transition-colors hover:border-theme-online/60 hover:text-theme-online"
+            >
+              <Laptop className="h-3.5 w-3.5 text-theme-online" />
+              <span className="hidden lg:inline">本机</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setNewTabMenuOpen((v) => !v)}
+              title="选择要启动的本机终端类型"
+              className="flex h-7 items-center rounded-r border border-l-0 border-theme-border bg-theme-elevated/70 px-1 text-theme-muted transition-colors hover:border-theme-online/60 hover:text-theme-online"
+            >
+              <ChevronDown className="h-3 w-3" />
+            </button>
+
+            {newTabMenuOpen && (
+              <div
+                style={{ boxShadow: 'var(--panel-shadow)' }}
+                className="absolute right-0 top-8 z-40 w-60 overflow-hidden rounded-lg border border-theme-border bg-theme-sidebar p-1 text-xs"
+              >
+                <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
+                  选择本机终端打开新标签页
+                </div>
+                {localShells.map((shell) => (
+                  <button
+                    key={shell.id}
+                    type="button"
+                    onClick={() => {
+                      setNewTabMenuOpen(false);
+                      openLocalTab(shell);
+                    }}
+                    className="flex w-full flex-col rounded-md px-2.5 py-1.5 text-left transition-colors hover:bg-theme-hover"
+                  >
+                    <span className="font-medium text-theme-primary">
+                      {shell.label}
+                    </span>
+                    <span className="truncate font-mono text-[10px] text-theme-muted">
+                      {shell.command}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mx-1 h-4 w-px bg-theme-border" />
+
           <button
             type="button"
             onClick={() => handleToolbarSplit('horizontal')}
@@ -498,6 +638,7 @@ export function TerminalWorkspace({ onAddHost }: TerminalWorkspaceProps) {
                   sessionId={activePane.sessionId}
                   hostName={activePane.hostName}
                   connectionState={activeSessionState}
+                  isLocal={activePane.hostId === LOCAL_HOST_ID}
                   onClose={() => setSftpOpen(false)}
                 />
               </div>

@@ -1,3 +1,13 @@
+export const LOCAL_HOST_ID = '__local_terminal__';
+
+export interface LocalShellProfile {
+  id: string;
+  label: string;
+  command: string;
+  args: string[];
+  platform: 'win32' | 'darwin' | 'linux';
+}
+
 export type SshConnectionState =
   | 'connecting'
   | 'connected'
@@ -9,6 +19,8 @@ export interface SshConnectRequest {
   hostId: string;
   cols: number;
   rows: number;
+  shellId?: string;
+  cwd?: string;
 }
 
 export interface SshConnectResult {
@@ -61,6 +73,7 @@ export type TerminalSplitNode =
       hostId: string;
       hostName: string;
       hostAddress: string;
+      shellId?: string;
     }
   | {
       type: 'split';

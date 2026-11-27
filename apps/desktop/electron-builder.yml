@@ -14,6 +14,9 @@ files:
   - build/icon.ico
   - package.json
 
+asarUnpack:
+  - "**/node_modules/@lydell/**/*"
+
 extraResources:
   - from: ../../package.json
     to: sync-server-bundle/package.json

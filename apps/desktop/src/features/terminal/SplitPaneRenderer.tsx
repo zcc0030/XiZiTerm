@@ -37,6 +37,7 @@ export function SplitPaneRenderer({
         hostId={node.hostId}
         hostName={node.hostName}
         hostAddress={node.hostAddress}
+        shellId={node.shellId}
         isActiveTab={isActiveTab}
         isActivePane={activePaneId === node.paneId}
         canClosePane={!isRootSinglePane}
